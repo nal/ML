@@ -1,0 +1,30 @@
+# Commit-message checks for Conventional Commits 1.0.0
+# https://www.conventionalcommits.org/en/v1.0.0/
+#
+# The git repo root is ML/, so this config lives in the project folder and is
+# installed with an explicit path (run from the ML/ repo root):
+#   pre-commit install --hook-type commit-msg -c CNN/image_classification/.pre-commit-config.yaml
+default_install_hook_types:
+  - commit-msg
+
+repos:
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.5.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        # Allowed types (the @commitlint/config-conventional set). Scopes are
+        # optional and free-form; see AGENTS.md for the suggested list.
+        args:
+          - --verbose
+          - feat
+          - fix
+          - docs
+          - refactor
+          - test
+          - build
+          - ci
+          - chore
+          - perf
+          - style
+          - revert
