@@ -30,11 +30,11 @@ A small learning project: a convolutional neural network (CNN) that classifies s
 - [x] Commit-message hook (pre-commit + conventional-pre-commit) installed and tested
 - [x] Agent rules written in `AGENTS.md`
 - [x] Step 1: project constitution v1.0.0 (`.specify/memory/constitution.md`)
+- [x] Step 2: feature 001, generate the dataset (PR #3)
+- [x] Step 3: feature 002, train and evaluate the CNN (PR #4)
 
 **To do**
 
-- [ ] Step 2: feature 001, generate the dataset
-- [ ] Step 3: feature 002, train and evaluate the CNN
 - [ ] Step 4: feature 003, MPS and performance comparison
 
 ---
@@ -46,7 +46,7 @@ The project is built as **three features**, one after another. Each feature gets
 | Step | Feature | Branch | What it delivers |
 |---|---|---|---|
 | 2 | 001 | `feat/001-generate-shape-dataset` | Docker environment and the image generator (training and held-out sets) |
-| 3 | 002 | `feat/002-cnn-training` | Preprocessing, CNN, training, evaluation, saved model, prediction |
+| 3 | 002 | `feat/002-cnn-training-prediction` | Preprocessing, CNN, training, evaluation, saved model, prediction |
 | 4 | 003 | `feat/003-device-benchmark` | Optional native MPS (Mac GPU) mode, `--device` flag, speed comparison |
 
 Every feature goes through the same Spec Kit cycle:
@@ -199,9 +199,9 @@ The commands above generate both sets and show how to override either seed.
 
 ### 2.6 Finish
 
-- [ ] All checks above pass
-- [ ] `/speckit-converge` reports **Converged**
-- [ ] Merge `feat/001-generate-shape-dataset` into `main`
+- [x] All checks above pass
+- [x] `/speckit-converge` reports **Converged**
+- [x] Merge `feat/001-generate-shape-dataset` into `main`
 
 ---
 
@@ -229,7 +229,7 @@ weights_only=True. Provide train, evaluate, and predict commands, running in
 Docker on CPU. Out of scope: MPS and performance comparison.
 ```
 
-Creates the branch `feat/002-cnn-training`.
+Creates the branch `feat/002-cnn-training-prediction`.
 
 ### 3.2 Clarify, plan, tasks, analyze
 
@@ -284,9 +284,9 @@ docker run --rm --entrypoint python shape-classifier -m pip check
 
 ### 3.5 Finish
 
-- [ ] All checks above pass
-- [ ] `/speckit-converge` reports **Converged**
-- [ ] Merge `feat/002-cnn-training` into `main`
+- [x] All checks above pass
+- [x] `/speckit-converge` reports **Converged**
+- [x] Merge `feat/002-cnn-training-prediction` into `main`
 
 ---
 
