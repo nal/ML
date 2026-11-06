@@ -22,7 +22,7 @@ def assess(model, train_data, held_out_data):
     return results
 
 
-def train(data_dir, checkpoint, seed=42, epochs=30, batch_size=8, dataset_train_seed=None, dataset_held_out_seed=None):
+def train(data_dir, checkpoint, seed=42, epochs=60, batch_size=8, dataset_train_seed=None, dataset_held_out_seed=None):
     random.seed(seed)
     np.random.seed(seed % (2**32))
     torch.manual_seed(seed)

@@ -3,6 +3,7 @@ import tempfile
 import unittest
 import subprocess
 import sys
+import inspect
 from pathlib import Path
 from unittest.mock import patch
 
@@ -13,7 +14,24 @@ from shape_classifier.data import CLASS_ORDER, ShapeDataset
 from shape_classifier.model import ShapeClassifier
 from shape_classifier.predict import predict
 from shape_classifier.train import assess
+from shape_classifier.train import train as train_classifier
+from shape_classifier.__main__ import main
 from shape_classifier.transforms import preprocess
+
+
+class TrainingDefaultsTests(unittest.TestCase):
+    def test_default_and_overrides_reach_training(self):
+        with patch('shape_classifier.__main__.train', return_value=[(1, 30), (1, 15)]) as run:
+            self.assertEqual(main(['train']), 0)
+            self.assertEqual(run.call_args.args[3], 60)
+            self.assertEqual(inspect.signature(train_classifier).parameters['epochs'].default, 60)
+            for epochs in (1, 30):
+                self.assertEqual(main(['train', '--epochs', str(epochs)]), 0)
+                self.assertEqual(run.call_args.args[3], epochs)
+            for value in ('0', '-1', '1.5'):
+                with self.assertRaises(SystemExit) as error:
+                    main(['train', '--epochs', value])
+                self.assertNotEqual(error.exception.code, 0)
 
 
 class ClassifierTests(unittest.TestCase):

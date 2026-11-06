@@ -15,7 +15,7 @@ A small learning project: a convolutional neural network (CNN) that classifies s
 4. [Step 1 — Project constitution (once)](#4-step-1--project-constitution-once)
 5. [Step 2 — Feature 001: generate the dataset](#5-step-2--feature-001-generate-the-dataset)
 6. [Step 3 — Feature 002: train and evaluate the CNN](#6-step-3--feature-002-train-and-evaluate-the-cnn)
-7. [Step 4 — Feature 003: MPS and performance comparison](#7-step-4--feature-003-mps-and-performance-comparison)
+7. [Step 4 — Feature 004: MPS and performance comparison](#7-step-4--feature-004-mps-and-performance-comparison)
 8. [Reference](#8-reference)
 
 ---
@@ -30,24 +30,26 @@ A small learning project: a convolutional neural network (CNN) that classifies s
 - [x] Commit-message hook (pre-commit + conventional-pre-commit) installed and tested
 - [x] Agent rules written in `AGENTS.md`
 - [x] Step 1: project constitution v1.0.0 (`.specify/memory/constitution.md`)
+- [x] Step 2: feature 001, generate the dataset (PR #3)
+- [x] Step 3: feature 002, train and evaluate the CNN (PR #4)
+- [x] Step 3 follow-up: feature 003, default training raised from 30 to 60 epochs ([comparison](specs/003-improve-default-training/comparison.md))
 
 **To do**
 
-- [ ] Step 2: feature 001, generate the dataset
-- [ ] Step 3: feature 002, train and evaluate the CNN
-- [ ] Step 4: feature 003, MPS and performance comparison
+- [ ] Step 4: feature 004, MPS and performance comparison
 
 ---
 
 ## 2. How the work is organized
 
-The project is built as **three features**, one after another. Each feature gets its own branch and its own folder under `specs/`.
+The project is built as **four features**, one after another. Each feature gets its own branch and its own folder under `specs/`.
 
 | Step | Feature | Branch | What it delivers |
 |---|---|---|---|
 | 2 | 001 | `feat/001-generate-shape-dataset` | Docker environment and the image generator (training and held-out sets) |
-| 3 | 002 | `feat/002-cnn-training` | Preprocessing, CNN, training, evaluation, saved model, prediction |
-| 4 | 003 | `feat/003-device-benchmark` | Optional native MPS (Mac GPU) mode, `--device` flag, speed comparison |
+| 3 | 002 | `feat/002-cnn-training-prediction` | Preprocessing, CNN, training, evaluation, saved model, prediction |
+| 3 | 003 | `feat/003-improve-default-training` | Follow-up: evidence-based default epoch count (60), selected from training data only |
+| 4 | 004 | `feat/004-device-benchmark` | Optional native MPS (Mac GPU) mode, `--device` flag, speed comparison |
 
 Every feature goes through the same Spec Kit cycle:
 
@@ -199,9 +201,9 @@ The commands above generate both sets and show how to override either seed.
 
 ### 2.6 Finish
 
-- [ ] All checks above pass
-- [ ] `/speckit-converge` reports **Converged**
-- [ ] Merge `feat/001-generate-shape-dataset` into `main`
+- [x] All checks above pass
+- [x] `/speckit-converge` reports **Converged**
+- [x] Merge `feat/001-generate-shape-dataset` into `main`
 
 ---
 
@@ -229,7 +231,7 @@ weights_only=True. Provide train, evaluate, and predict commands, running in
 Docker on CPU. Out of scope: MPS and performance comparison.
 ```
 
-Creates the branch `feat/002-cnn-training`.
+Creates the branch `feat/002-cnn-training-prediction`.
 
 ### 3.2 Clarify, plan, tasks, analyze
 
@@ -240,7 +242,7 @@ Creates the branch `feat/002-cnn-training`.
 /speckit-analyze
 ```
 
-Questions `clarify` may raise: the **number of epochs** and **batch size** (recommended defaults: about 30 epochs, batch size 8, both overridable by CLI flags), and the **output format** of predictions (recommended: class name and confidence per image).
+Questions `clarify` may raise: the **number of epochs** and **batch size** (recommended defaults: about 30 epochs, batch size 8, both overridable by CLI flags; feature 003 later raised the default to 60 epochs), and the **output format** of predictions (recommended: class name and confidence per image).
 
 ### 3.3 Implement and converge
 
@@ -269,9 +271,11 @@ docker run --rm -v "$PWD/data:/data" --entrypoint python shape-classifier -m sha
 docker run --rm -v "$PWD/data:/data" --entrypoint python shape-classifier -m shape_classifier predict /data/held-out/circle/01.png
 ```
 
-Training defaults to seed 42, 30 epochs and batch size 8; override these with `--seed`, `--epochs`, and `--batch-size`. The optional dataset seed flags record provenance only; each omitted value is recorded as `unknown`. `--data-dir` and `--checkpoint` override the default `/data` and `/data/shapes.pth`. The saved checkpoint contains CPU weights and plain metadata, and can be loaded with `weights_only=True` in a compatible PyTorch environment.
+Training defaults to seed 42, 60 epochs and batch size 8; override these with `--seed`, `--epochs`, and `--batch-size` (for example, `--epochs 30` for the previous default). The optional dataset seed flags record provenance only; each omitted value is recorded as `unknown`. `--data-dir` and `--checkpoint` override the default `/data` and `/data/shapes.pth`. The saved checkpoint contains CPU weights and plain metadata, and can be loaded with `weights_only=True` in a compatible PyTorch environment.
 
 Training and evaluation report the correct counts and accuracy for both the 30 training and 15 held-out images. With only 15 held-out images, each image changes held-out accuracy by about 6.7 percentage points. Interpret the two accuracies together: training accuracy alone does not measure generalization. This tiny synthetic dataset is a learning demo, not evidence of real-world performance.
+
+In the [epoch comparison](specs/003-improve-default-training/comparison.md), 30 epochs took 21.63 seconds in the training loop and achieved 16/30 training and 7/15 held-out; 60 epochs took 45.71 seconds and achieved 19/30 training and 6/15 held-out. The longer default met the training-only selection rule but did not improve this held-out result. These times depend on the machine; the held-out result had already been observed before this comparison and is not a pristine test.
 
 This image uses one CPU thread and deterministic algorithms, so repeated runs with the same data, seed, and settings in the same image are expected to match. Across PyTorch builds, CPUs, and thread counts, floating-point operation order and kernel selection can vary, so fixed seeds do not guarantee identical results across environments.
 
@@ -284,13 +288,13 @@ docker run --rm --entrypoint python shape-classifier -m pip check
 
 ### 3.5 Finish
 
-- [ ] All checks above pass
-- [ ] `/speckit-converge` reports **Converged**
-- [ ] Merge `feat/002-cnn-training` into `main`
+- [x] All checks above pass
+- [x] `/speckit-converge` reports **Converged**
+- [x] Merge `feat/002-cnn-training-prediction` into `main`
 
 ---
 
-## 7. Step 4 — Feature 003: MPS and performance comparison
+## 7. Step 4 — Feature 004: MPS and performance comparison
 
 **Goal:** run the same training natively on the Mac's GPU (MPS) and compare speed across Docker CPU, native CPU, and native MPS.
 
@@ -326,7 +330,7 @@ comparison table for Docker CPU, native CPU, and native MPS. Docker remains
 the default runtime.
 ```
 
-Creates the branch `feat/003-device-benchmark`.
+Creates the branch `feat/004-device-benchmark`.
 
 ### 4.3 Clarify, plan, tasks, analyze
 
@@ -371,7 +375,7 @@ uv run shapes benchmark-summary                                      # compariso
 
 - [ ] All checks above pass
 - [ ] `/speckit-converge` reports **Converged**
-- [ ] Merge `feat/003-device-benchmark` into `main`
+- [ ] Merge `feat/004-device-benchmark` into `main`
 - [ ] Update [Current status](#1-current-status)
 
 ---
