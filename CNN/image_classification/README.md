@@ -29,10 +29,10 @@ A small learning project: a convolutional neural network (CNN) that classifies s
 - [x] Spec Kit git extension set up: `feat/NNN-slug` branches, Conventional Commit auto-commits
 - [x] Commit-message hook (pre-commit + conventional-pre-commit) installed and tested
 - [x] Agent rules written in `AGENTS.md`
+- [x] Step 1: project constitution v1.0.0 (`.specify/memory/constitution.md`)
 
 **To do**
 
-- [ ] Step 1: project constitution
 - [ ] Step 2: feature 001, generate the dataset
 - [ ] Step 3: feature 002, train and evaluate the CNN
 - [ ] Step 4: feature 003, MPS and performance comparison
@@ -111,8 +111,8 @@ Use CNN_image_classification_research.md as the source of truth for requirements
 
 **Done when:**
 
-- [ ] `.specify/memory/constitution.md` contains the five principles
-- [ ] A commit like `docs: add project constitution` was created and passed the commit hook
+- [x] `.specify/memory/constitution.md` contains the five principles
+- [x] A commit like `docs: add project constitution` was created and passed the commit hook
 
 ---
 
