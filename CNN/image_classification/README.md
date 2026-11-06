@@ -45,7 +45,7 @@ The project is built as **three features**, one after another. Each feature gets
 
 | Step | Feature | Branch | What it delivers |
 |---|---|---|---|
-| 2 | 001 | `feat/001-shape-dataset` | Docker environment and the image generator (training and held-out sets) |
+| 2 | 001 | `feat/001-generate-shape-dataset` | Docker environment and the image generator (training and held-out sets) |
 | 3 | 002 | `feat/002-cnn-training` | Preprocessing, CNN, training, evaluation, saved model, prediction |
 | 4 | 003 | `feat/003-device-benchmark` | Optional native MPS (Mac GPU) mode, `--device` flag, speed comparison |
 
@@ -135,7 +135,7 @@ and writes images to a host-mounted data directory, one folder per set and
 class. Out of scope: training, evaluation, MPS.
 ```
 
-Creates the branch `feat/001-shape-dataset` and `specs/001-shape-dataset/spec.md`.
+Creates the branch `feat/001-generate-shape-dataset` and `specs/001-generate-shape-dataset/spec.md`.
 
 ### 2.2 Clarify
 
@@ -166,19 +166,33 @@ Repeat `implement` → `converge` until converge reports **Converged**.
 
 ### 2.5 Generate and check the dataset
 
-The exact commands are defined by the plan. They will look roughly like this:
+#### Dataset generator usage
 
-```bash
-docker build -t shapes .
-docker run --rm -v "$PWD/data:/app/data" shapes generate             # training + held-out sets
-docker run --rm -v "$PWD/data:/app/data" shapes generate --seed 123   # seed override example
+Generate a small synthetic learning dataset; it is not evidence of real-world model performance. Requires a running Docker daemon.
+
+```sh
+docker build -t shape-dataset .
+mkdir -p data
+docker run --rm -v "$PWD/data:/data" shape-dataset
+docker run --rm -v "$PWD/data:/data" shape-dataset --train-seed 123 --held-out-seed 456
 ```
+
+The host directory contains `train` (10 images per class) and `held-out` (5 per class), with `circle`, `rectangle`, and `triangle` folders. All images are RGB 1920 × 1080 PNGs. Override the independent default seeds 42 and 43 with `--train-seed` and `--held-out-seed`; equal seeds are rejected.
+
+Shapes have an inscribed radius of at least 120 source pixels; triangles have angles of at least 20 degrees. Foreground and background relative luminance contrast is at least 3:1. Each class and set contains variation in position, size, and color, and non-circles vary in rotation.
+
+Runs track generated files in a manifest and preserve unrelated files. A process interrupted during publication leaves a journal; rerunning resumes it. If recovery data is damaged or files have changed unexpectedly, inspect the reported paths before retrying; do not delete unrelated files. Whole-dataset atomicity and power-loss durability are not guaranteed.
+
+Run checks with `docker run --rm --entrypoint python shape-dataset -m unittest discover -s tests`.
+
+
+The commands above generate both sets and show how to override either seed.
 
 **Check the result:**
 
 | Check | How |
 |---|---|
-| Image counts | `data/train/<class>/` has 10 PNGs each; `data/heldout/<class>/` has 5 each |
+| Image counts | `data/train/<class>/` has 10 PNGs each; `data/held-out/<class>/` has 5 each |
 | Resolution | `sips -g pixelWidth -g pixelHeight data/train/circle/*.png \| head` shows 1920 × 1080 |
 | Reproducible | Generate twice with the same seeds; `shasum data/train/*/*.png` gives identical results |
 | Looks right | `open data/train/triangle/*.png`: shapes are filled, visible, and stand out from the background |
@@ -187,7 +201,7 @@ docker run --rm -v "$PWD/data:/app/data" shapes generate --seed 123   # seed ove
 
 - [ ] All checks above pass
 - [ ] `/speckit-converge` reports **Converged**
-- [ ] Merge `feat/001-shape-dataset` into `main`
+- [ ] Merge `feat/001-generate-shape-dataset` into `main`
 
 ---
 
@@ -245,7 +259,7 @@ Exact commands come from the plan. Roughly:
 docker build -t shapes .
 docker run --rm -v "$PWD/data:/app/data" shapes train
 docker run --rm -v "$PWD/data:/app/data" shapes evaluate
-docker run --rm -v "$PWD/data:/app/data" shapes predict data/heldout/triangle/<file>.png
+docker run --rm -v "$PWD/data:/app/data" shapes predict data/held-out/triangle/<file>.png
 ```
 
 **Check the result:**
