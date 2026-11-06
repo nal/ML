@@ -253,24 +253,34 @@ Repeat until **Converged**.
 
 ### 3.4 Train, evaluate, and predict
 
-Exact commands come from the plan. Roughly:
+Build the image and generate a dataset using the unchanged generator entrypoint:
 
-```bash
-docker build -t shapes .
-docker run --rm -v "$PWD/data:/app/data" shapes train
-docker run --rm -v "$PWD/data:/app/data" shapes evaluate
-docker run --rm -v "$PWD/data:/app/data" shapes predict data/held-out/triangle/<file>.png
+```sh
+docker build -t shape-classifier .
+mkdir -p data
+docker run --rm -v "$PWD/data:/data" shape-classifier
 ```
 
-**Check the result:**
+Train, evaluate, and predict using the classifier module:
 
-| Check | Expected |
-|---|---|
-| Training accuracy | Close to 100% (this only proves the pipeline works) |
-| Held-out accuracy | Reported next to training accuracy. Well above 33% (chance level) means the model learned the shapes. With 15 images, each image is about 6.7%. |
-| Saved model | `data/shapes.pth` (or the path the plan chose) exists and loads with `weights_only=True` |
-| Reproducible | Training twice with the same seed gives nearly identical accuracy |
-| Prediction | Prints a class name (and confidence) for an image the model has not trained on |
+```sh
+docker run --rm -v "$PWD/data:/data" --entrypoint python shape-classifier -m shape_classifier train --dataset-train-seed 42 --dataset-held-out-seed 43
+docker run --rm -v "$PWD/data:/data" --entrypoint python shape-classifier -m shape_classifier evaluate
+docker run --rm -v "$PWD/data:/data" --entrypoint python shape-classifier -m shape_classifier predict /data/held-out/circle/01.png
+```
+
+Training defaults to seed 42, 30 epochs and batch size 8; override these with `--seed`, `--epochs`, and `--batch-size`. The optional dataset seed flags record provenance only; each omitted value is recorded as `unknown`. `--data-dir` and `--checkpoint` override the default `/data` and `/data/shapes.pth`. The saved checkpoint contains CPU weights and plain metadata, and can be loaded with `weights_only=True` in a compatible PyTorch environment.
+
+Training and evaluation report the correct counts and accuracy for both the 30 training and 15 held-out images. With only 15 held-out images, each image changes held-out accuracy by about 6.7 percentage points. Interpret the two accuracies together: training accuracy alone does not measure generalization. This tiny synthetic dataset is a learning demo, not evidence of real-world performance.
+
+This image uses one CPU thread and deterministic algorithms, so repeated runs with the same data, seed, and settings in the same image are expected to match. Across PyTorch builds, CPUs, and thread counts, floating-point operation order and kernel selection can vary, so fixed seeds do not guarantee identical results across environments.
+
+Run the regression checks with:
+
+```sh
+docker run --rm --entrypoint python shape-classifier -m unittest discover -s tests
+docker run --rm --entrypoint python shape-classifier -m pip check
+```
 
 ### 3.5 Finish
 
