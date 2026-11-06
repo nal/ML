@@ -25,7 +25,7 @@ def main(argv=None):
     for command in (training, evaluation, prediction):
         command.add_argument('--checkpoint', default='/data/shapes.pth')
     training.add_argument('--seed', type=int, default=42)
-    training.add_argument('--epochs', type=positive_int, default=30)
+    training.add_argument('--epochs', type=positive_int, default=60)
     training.add_argument('--batch-size', type=positive_int, default=8)
     training.add_argument('--dataset-train-seed', type=int)
     training.add_argument('--dataset-held-out-seed', type=int)
