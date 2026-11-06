@@ -1,0 +1,2 @@
+Pillow==13.0.0
+setuptools==80.9.0
