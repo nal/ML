@@ -55,9 +55,10 @@ The project is built as a series of Spec Kit features. Each feature gets its own
 | 001 | [Generate Synthetic Shape Dataset](specs/001-generate-shape-dataset/spec.md) | `feat/001-generate-shape-dataset` | Implemented |
 | 002 | [CNN Training, Evaluation, and Prediction](specs/002-cnn-training-prediction/spec.md) | `feat/002-cnn-training-prediction` | Implemented |
 | 003 | [Improve Default Training](specs/003-improve-default-training/spec.md) | `feat/003-improve-default-training` | Implemented |
+| 004 | [Device Benchmark](specs/004-device-benchmark/spec.md) | `feat/004-device-benchmark` | Draft |
 | 005 | [High-Level Design](specs/005-high-level-design/spec.md) | `feat/005-high-level-design` | Implemented |
 
-4 of 4 specified features implemented.
+4 of 5 specified features implemented.
 <!-- features:end -->
 
 **Feature numbers never drift** because `specs/` is the only place they come from:
