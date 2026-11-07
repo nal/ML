@@ -57,9 +57,9 @@ The project is built as a series of Spec Kit features. Each feature gets its own
 | 003 | [Improve Default Training](specs/003-improve-default-training/spec.md) | `feat/003-improve-default-training` | Implemented |
 | 004 | [Device Benchmark](specs/004-device-benchmark/spec.md) | `feat/004-device-benchmark` | Implemented |
 | 005 | [High-Level Design](specs/005-high-level-design/spec.md) | `feat/005-high-level-design` | Implemented |
-| 006 | [Matched-Core Benchmark](specs/006-matched-core-benchmark/spec.md) | `feat/006-matched-core-benchmark` | Draft |
+| 006 | [Matched-Core Benchmark](specs/006-matched-core-benchmark/spec.md) | `feat/006-matched-core-benchmark` | Implemented |
 
-5 of 6 specified features implemented.
+6 of 6 specified features implemented.
 <!-- features:end -->
 
 **Feature numbers never drift** because `specs/` is the only place they come from:

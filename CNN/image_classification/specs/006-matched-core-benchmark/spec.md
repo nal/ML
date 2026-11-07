@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-07
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "Matched-core benchmark: add an optional CPU thread-count option to training (--cpu-threads N, default: all available cores as in feature 004) so benchmark configurations can use the same number of CPU cores. Target comparison on this M1 Pro (8 performance + 2 efficiency CPU cores, 16-core GPU): Docker CPU with the Colima VM set to 8 CPUs, native CPU with 8 threads, and native MPS using the whole GPU with CPU-side work limited to 8 threads. Changing the Docker VM CPU count is a documented manual step (colima stop/start --cpu 8) that affects all containers; the app only detects and reports it and warns when the Docker VM CPU count differs from the requested thread count. A requested thread count above the available cores fails clearly. Each benchmark entry records the requested and actual thread count and the Docker VM CPU count; the summary shows thread count per row and never averages runs with different thread counts together. MPS GPU cores cannot be limited and GPU results are never extrapolated or scaled: MPS is reported as measured, as a different processor type, not as "N cores". Documentation explains why GPU-core matching and time extrapolation are not supported."
 
