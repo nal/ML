@@ -55,7 +55,7 @@ The same code runs in two environments. Docker is the default; native macOS is a
 
 ### Optional: native macOS (MPS or CPU)
 
-- A native virtual environment on the Mac, created with a **`uv`-managed Python 3.14.10** (`uv python install 3.14.10`; `uv` reads `.python-version`), using the same pinned package versions. Do not use Homebrew's Python (currently 3.14.7), because Homebrew upgrades it automatically and would break the pin. The standard macOS arm64 PyTorch wheel includes MPS support.
+- A native virtual environment on the Mac, created with **Python 3.14.10** and `uv`, using the same pinned package versions. The Homebrew Python installation may be used after verifying its patch version; Homebrew upgrades can change it, so recheck the version and recreate the environment after an upgrade. The standard macOS arm64 PyTorch wheel includes MPS support.
 - Requires macOS 15 or newer for MPS (PyTorch 2.15); this Mac runs macOS 27.0.1.
 - Reads and writes the same project data directory as the Docker mode, so both modes can use the same generated images.
 

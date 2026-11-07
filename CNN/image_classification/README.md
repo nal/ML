@@ -55,9 +55,10 @@ The project is built as a series of Spec Kit features. Each feature gets its own
 | 001 | [Generate Synthetic Shape Dataset](specs/001-generate-shape-dataset/spec.md) | `feat/001-generate-shape-dataset` | Implemented |
 | 002 | [CNN Training, Evaluation, and Prediction](specs/002-cnn-training-prediction/spec.md) | `feat/002-cnn-training-prediction` | Implemented |
 | 003 | [Improve Default Training](specs/003-improve-default-training/spec.md) | `feat/003-improve-default-training` | Implemented |
+| 004 | [Device Benchmark](specs/004-device-benchmark/spec.md) | `feat/004-device-benchmark` | Implemented |
 | 005 | [High-Level Design](specs/005-high-level-design/spec.md) | `feat/005-high-level-design` | Implemented |
 
-4 of 4 specified features implemented.
+5 of 5 specified features implemented.
 <!-- features:end -->
 
 **Feature numbers never drift** because `specs/` is the only place they come from:
@@ -269,6 +270,26 @@ Questions `clarify` may raise: the **number of epochs** and **batch size** (reco
 
 Repeat until **Converged**.
 
+### Native macOS setup (optional)
+
+Docker remains the default. On Apple silicon macOS 15 or newer, install the same Python and dependency versions with `uv`:
+
+```sh
+brew install python@3.14  # or brew upgrade python@3.14 if already installed
+/opt/homebrew/bin/python3.14 --version  # must report Python 3.14.10
+uv venv --python /opt/homebrew/bin/python3.14
+uv pip install --index-strategy unsafe-best-match -r requirements.txt
+uv pip install --no-build-isolation --no-deps .
+uv pip check
+.venv/bin/python -m shape_dataset --output-dir "$PWD/data"
+.venv/bin/python -m shape_classifier train --data-dir "$PWD/data" --checkpoint "$PWD/data/shapes.pth" --device auto
+.venv/bin/python -m shape_classifier evaluate --data-dir "$PWD/data" --checkpoint "$PWD/data/shapes.pth" --device cpu
+.venv/bin/python -m shape_classifier predict "$PWD/data/held-out/circle/01.png" --checkpoint "$PWD/data/shapes.pth" --device auto
+.venv/bin/python -m shape_classifier summary --data-dir "$PWD/data"
+```
+
+The same `data` directory is mounted at `/data` in Docker. Use `--device auto`, `cpu`, or `mps`; explicit MPS fails if unavailable. Checkpoints are portable between environments. The Python package versions are shared; Docker uses CPU PyTorch builds, while native macOS uses standard builds. Homebrew may upgrade Python automatically: verify the patch version and recreate the virtual environment if it changes.
+
 ### 3.4 Train, evaluate, and predict
 
 Build the image and generate a dataset using the unchanged generator entrypoint:
@@ -293,7 +314,30 @@ Training and evaluation report the correct counts and accuracy for both the 30 t
 
 In the [epoch comparison](specs/003-improve-default-training/comparison.md), 30 epochs took 21.63 seconds in the training loop and achieved 16/30 training and 7/15 held-out; 60 epochs took 45.71 seconds and achieved 19/30 training and 6/15 held-out. The longer default met the training-only selection rule but did not improve this held-out result. These times depend on the machine; the held-out result had already been observed before this comparison and is not a pristine test.
 
-This image uses one CPU thread and deterministic algorithms, so repeated runs with the same data, seed, and settings in the same image are expected to match. Across PyTorch builds, CPUs, and thread counts, floating-point operation order and kernel selection can vary, so fixed seeds do not guarantee identical results across environments.
+CPU training uses all cores available to its environment. Fixed seeds and deterministic algorithms remain enabled where supported, but multithreaded CPU runs can vary slightly between repeats and machines. CPU and MPS arithmetic are not bit-identical, and MPS runs are not guaranteed to reproduce bit for bit. Docker may have fewer CPU cores or less memory than the Mac.
+
+### Device benchmark
+
+Run each command **sequentially** and wait for it to finish before starting the next command that accesses the same results or checkpoint. Overlapping runs or reads are unsupported and may not be detected. Docker CPU, native CPU and native MPS must use the same images, seed, epochs and batch size for a direct comparison:
+
+```sh
+docker run --rm -v "$PWD/data:/data" --entrypoint python shape-classifier -m shape_classifier train --device cpu
+.venv/bin/python -m shape_classifier train --data-dir "$PWD/data" --checkpoint "$PWD/data/shapes.pth" --device cpu
+.venv/bin/python -m shape_classifier train --data-dir "$PWD/data" --checkpoint "$PWD/data/shapes.pth" --device mps
+.venv/bin/python -m shape_classifier summary --data-dir "$PWD/data"
+```
+
+The summary groups different datasets and settings separately. It shows mean training time excluding the first warm-up epoch, inference time per held-out image, final loss, and training and held-out accuracy together. With one epoch the excluded training times are unavailable. An MPS result that is slower is still reported as measured; this small synthetic dataset is not evidence of real-world performance.
+
+For a comparison on this Mac with the default seed 42, batch size 8, 60 epochs and the same generated data, the measured results were:
+
+| Configuration | Runs | Training time excluding first epoch | Mean epoch time | Inference per image | Final loss | Training accuracy | Held-out accuracy |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Docker CPU (2 threads) | 1 | 24.633 s | 0.418 s | 0.002419 s | 0.7650 | 19/30 (63.3%) | 6/15 (40.0%) |
+| Native CPU (10 threads) | 2 | 9.306 s | 0.158 s | 0.001201 s | 0.7576 | 20/30 (66.7%) | 6/15 (40.0%) |
+| Native MPS | 1 | 6.901 s | 0.117 s | 0.000567 s | 0.7603 | 18/30 (60.0%) | 6/15 (40.0%) |
+
+The two native CPU runs had identical accuracies and loss; their warm-up-excluded times were 9.411 and 9.201 seconds (about 2.3% apart). Timing varies with machine load, and these results are not a general speed claim.
 
 Run the regression checks with:
 

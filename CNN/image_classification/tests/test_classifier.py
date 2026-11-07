@@ -46,6 +46,12 @@ class ClassifierTests(unittest.TestCase):
                 for i in range(count):
                     Image.new('RGB', (8, 8), (i, 100, 200)).save(folder / f'{i}.png')
 
+    def legacy_checkpoint(self):
+        """Create a feature 002/003-format CPU checkpoint in this fixture."""
+        path = self.root / "legacy.pth"
+        save_checkpoint(path, ShapeClassifier(), 42, None, None)
+        return path
+
     def test_cache_and_paired_assessment(self):
         with patch('shape_classifier.data.preprocess', wraps=preprocess) as resize:
             train = ShapeDataset(self.root, 'train')
