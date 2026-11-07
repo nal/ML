@@ -1,11 +1,13 @@
-# Commit-message checks for Conventional Commits 1.0.0
-# https://www.conventionalcommits.org/en/v1.0.0/
+# Git hooks for this project:
+# - commit-msg: Conventional Commits 1.0.0 (https://www.conventionalcommits.org/en/v1.0.0/)
+# - pre-commit: feature ledger (specs/ is the only source of feature numbers; see AGENTS.md)
 #
 # The git repo root is ML/, so this config lives in the project folder and is
 # installed with an explicit path (run from the ML/ repo root):
-#   pre-commit install --hook-type commit-msg -c CNN/image_classification/.pre-commit-config.yaml
+#   pre-commit install -c CNN/image_classification/.pre-commit-config.yaml
 default_install_hook_types:
   - commit-msg
+  - pre-commit
 
 repos:
   - repo: https://github.com/compilerla/conventional-pre-commit
@@ -28,3 +30,13 @@ repos:
           - perf
           - style
           - revert
+
+  - repo: local
+    hooks:
+      - id: feature-ledger
+        name: Feature numbers, specs, branches and README table agree
+        entry: python3 CNN/image_classification/scripts/features.py --check
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
