@@ -21,7 +21,10 @@ understand what the CNN and the pipeline actually do.
 - The same seeds MUST produce byte-identical generated images.
 - Python MUST be pinned to 3.14.10, and every dependency MUST be pinned to an exact version in a
   single shared lock or requirements file.
-- Docker MUST be the default runtime; every documented command MUST work inside the Docker image.
+- Docker MUST be the default runtime. Documented application commands MUST work inside the Docker
+  image, except commands explicitly identified as optional native macOS execution. Commands for
+  host administration and host-side launchers MUST be identified as host commands and need not run
+  inside the Docker image.
 - Known limits of reproducibility (for example MPS and multithreaded CPU kernels are not
   bit-identical) MUST be documented rather than hidden.
 
@@ -102,4 +105,4 @@ easy to review and revert.
   Reviewers MUST verify compliance in each pull request; violations MUST be fixed or justified in
   the plan's Complexity Tracking table.
 
-**Version**: 1.0.0 | **Ratified**: 2026-11-06 | **Last Amended**: 2026-11-06
+**Version**: 2.0.0 | **Ratified**: 2026-11-06 | **Last Amended**: 2026-11-07
