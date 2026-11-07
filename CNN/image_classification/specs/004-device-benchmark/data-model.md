@@ -14,7 +14,7 @@ One completed training run contains a UTC timestamp, run context, dataset finger
 
 ## Results file
 
-A versioned JSON object contains an ordered array of entries. Missing file means empty collection; malformed JSON, invalid entries or unsupported versions are errors and must remain untouched. Writers acquire a stable sidecar lock, read and validate the entire current document, append exactly one entry, then atomically replace the file. Readers use the same lock. An interrupted or failed run before commit creates no entry; atomic replacement is the commit point.
+A versioned JSON object contains an ordered array of entries. Missing file means empty collection; malformed JSON, invalid entries or unsupported versions are errors and must remain untouched. Writers acquire a stable sidecar lock, read and validate the entire current document, append exactly one entry, then atomically replace the file. Readers use the same lock and resolve pending publication recovery first. An interrupted or failed run before commit creates no entry; results replacement is the commit point. A committed transaction is treated as successful even if termination arrives afterward.
 
 ## Comparison group
 
@@ -23,3 +23,7 @@ The key is dataset fingerprint, training seed, epoch count and batch size. Each 
 ## Model provenance
 
 The existing checkpoint holds CPU-resident state dict and metadata: class order, input dimensions, scaling, training and dataset seeds, PyTorch version, environment and device. Validate preprocessing and provenance types/allowed values, but do not require current environment/device to match. Existing feature 002/003 Docker/CPU metadata remains valid.
+
+## Publication transaction
+
+A unique run ID ties the staged checkpoint, preserved prior checkpoint state, staged results and durable recovery journal to one transaction. A durable sidecar at the checkpoint destination identifies the journal so evaluation and prediction can discover pending recovery even when the data directory differs. Lock both results and checkpoint destinations in a consistent order; all classifier checkpoint readers participate in the checkpoint lock. States are prepared, checkpoint published, and results committed. Before results commit, recovery restores the old checkpoint or removes the newly created checkpoint; after commit, recovery keeps both outputs and cleans up. A caught results-save error must restore the old checkpoint and fail. If recovery cannot access or restore a destination, preserve the journal, refuse to expose the transaction as complete and report an actionable error until recovery succeeds. The implementation must tolerate arbitrary checkpoint locations and concurrent runs sharing a checkpoint.

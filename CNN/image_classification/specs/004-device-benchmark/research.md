@@ -39,3 +39,11 @@
 **Rationale**: The current format already supports portable weights, but its metadata validator incorrectly demands Docker/CPU.
 
 **Alternatives considered**: Device-specific serialized tensors or ignoring all metadata (portability or validation loss).
+
+## Publishing checkpoint and results
+
+**Decision**: Stage the CPU checkpoint in its destination directory and the validated updated JSON in the results directory. Under stable locks for both the results and checkpoint destinations, preserve the old checkpoint (or its absence) and record a recoverable transaction before publishing. Publish the checkpoint first and atomically replace the results last; that replacement is the success commit point. If results publication fails, restore the previous checkpoint or remove the newly created one and report failure. Defer ordinary termination signals across the short publication section; before the commit point an interruption leaves no result entry, while after it the run is committed. On subsequent access, recover an incomplete transaction under the same locks before exposing outputs. Use unique run identifiers in the journal and results to distinguish committed transactions during recovery. Do not report successful rollback if restoration fails; retain recovery information and report an actionable error.
+
+**Rationale**: The clarified requirement protects an existing checkpoint when results cannot be saved, while existing checkpoint paths may be outside the data directory or on another filesystem. Two separate file replacements are not a single atomic operation; a durable journal and recovery are necessary for abrupt termination. Recovery cannot restore a checkpoint while its filesystem is inaccessible, so fail clearly and retry recovery when accessible. Avoid claiming instantaneous two-file atomicity.
+
+**Alternatives considered**: Results first can leave an entry for a failed checkpoint write; checkpoint first without backup changes the checkpoint on a results error; plain rollback without a journal loses recovery information after a crash. A database or mandatory relocation of existing checkpoint paths adds dependencies or breaks the existing CLI.

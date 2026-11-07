@@ -4,25 +4,25 @@
 
 ## Summary
 
-Add truthful CPU/MPS selection and native macOS execution to the existing classifier, preserve portable checkpoints, and record comparable training and inference measurements in a shared, concurrency-safe results file. A summary groups runs by data and training settings and reports all three configurations, including missing measurements.
+Add truthful CPU/MPS selection and native macOS execution to the existing classifier, preserve portable checkpoints, and record comparable training and inference measurements in a shared, concurrency-safe results file. A summary groups runs by data and training settings and reports all three configurations, including missing measurements. Stage the checkpoint and results together under locks, with rollback and recovery for incomplete publication.
 
 ## Technical Context
 
 **Language/Version**: Python 3.14.10  
 **Primary Dependencies**: Existing exact pins in `requirements.txt`, including PyTorch 2.15.0, torchvision 0.29.2, Pillow and NumPy; standard library locking and hashing  
-**Storage**: Shared data directory: images, CPU-neutral `.pth` checkpoint, versioned JSON results and stable lock file  
+**Storage**: Shared data directory: images, CPU-neutral `.pth` checkpoint, versioned JSON results, stable locks and a publication recovery journal  
 **Testing**: `unittest`, CLI and Docker integration checks; native Apple silicon/MPS acceptance checks  
 **Target Platform**: arm64 Linux Docker CPU (default); Apple silicon macOS 15+ native CPU/MPS  
 **Project Type**: Python command-line application  
 **Performance Goals**: Measure warm-up-excluded training and held-out per-image inference; no speedup guaranteed  
-**Constraints**: Same data and package versions across platforms; no held-out training or selection; explicit unavailable MPS fails before writes; synchronize timed MPS work; concurrent results writers preserve entries  
+**Constraints**: Same data and package versions across platforms; no held-out training or selection; explicit unavailable MPS fails before writes; synchronize timed MPS work; concurrent results writers preserve entries; a results-save failure preserves the previous checkpoint  
 **Scale/Scope**: 30 training and 15 held-out images, three configurations and repeated local runs.
 
 ## Constitution Check
 
 | Principle | Before research | After design |
 |---|---|---|
-| I. Simplicity | Pass: extend existing CLI, no new dependency. | Pass: one versioned results file and OS lock meet explicit concurrency needs. |
+| I. Simplicity | Pass: extend existing CLI, no new dependency. | Pass: versioned results, locks and a small recovery journal meet explicit concurrency and failure requirements. |
 | II. Reproducibility | Pass: shared pins, seeds and documented device limits. | Pass: content fingerprint and settings group runs; exact platform builds verified. |
 | III. Honest Evaluation | Pass: paired accuracy and held-out isolation required. | Pass: report measured values and caveats; no speed-based selection. |
 | IV. Shared Preprocessing | Pass: retain existing transforms and checkpoint validation. | Pass: reuse cached dataset and shared prediction transform. |
@@ -33,7 +33,7 @@ Gate result: PASS before Phase 0 and after Phase 1. No exceptions or new depende
 ## Project Structure
 
 ```text
-src/shape_classifier/   # CLI, training, prediction, checkpoint; device and benchmark support
+src/shape_classifier/   # CLI, training, prediction, checkpoint; device, benchmark and publication recovery support
 src/shape_dataset/      # unchanged dataset generation interface
 requirements.txt        # shared exact package pins with platform-specific builds
 Dockerfile              # default CPU runtime
