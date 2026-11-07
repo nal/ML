@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-06
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "Decide on the weak model. You can open a small follow-up feature to raise the default number of training epochs"
 
