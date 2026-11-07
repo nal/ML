@@ -315,7 +315,7 @@ Training and evaluation report the correct counts and accuracy for both the 30 t
 
 In the [epoch comparison](specs/003-improve-default-training/comparison.md), 30 epochs took 21.63 seconds in the training loop and achieved 16/30 training and 7/15 held-out; 60 epochs took 45.71 seconds and achieved 19/30 training and 6/15 held-out. The longer default met the training-only selection rule but did not improve this held-out result. These times depend on the machine; the held-out result had already been observed before this comparison and is not a pristine test.
 
-CPU training uses all cores available to its environment. Fixed seeds and deterministic algorithms remain enabled where supported, but multithreaded CPU runs can vary slightly between repeats and machines. CPU and MPS arithmetic are not bit-identical, and MPS runs are not guaranteed to reproduce bit for bit. Docker may have fewer CPU cores or less memory than the Mac.
+CPU training defaults to all cores available to its environment; `train --cpu-threads N` sets the CPU computation thread count to a positive value no greater than the available CPUs. It does not pin threads to particular cores: macOS may schedule work on performance or efficiency cores. Fixed seeds and deterministic algorithms remain enabled where supported, but multithreaded CPU runs can vary slightly between repeats and machines. CPU and MPS arithmetic are not bit-identical, and MPS runs are not guaranteed to reproduce bit for bit. Docker may have fewer CPU cores or less memory than the Mac.
 
 ### Device benchmark
 
@@ -328,7 +328,42 @@ docker run --rm -v "$PWD/data:/data" --entrypoint python shape-classifier -m sha
 .venv/bin/python -m shape_classifier summary --data-dir "$PWD/data"
 ```
 
-The summary groups different datasets and settings separately. It shows mean training time excluding the first warm-up epoch, inference time per held-out image, final loss, and training and held-out accuracy together. With one epoch the excluded training times are unavailable. An MPS result that is slower is still reported as measured; this small synthetic dataset is not evidence of real-world performance.
+The summary groups different datasets and settings separately, including CPU thread count, Docker VM CPU allocation and its provenance. Earlier Docker counts are labeled `legacy-unverified`; direct container invocations without a host observation report an unknown allocation. It shows mean training time excluding the first warm-up epoch, inference time per held-out image, final loss, and training and held-out accuracy together. With one epoch the excluded training times are unavailable. An MPS result that is slower is still reported as measured; this small synthetic dataset is not evidence of real-world performance.
+
+### Matched CPU thread comparison
+
+These are **host commands**, run from this project directory. Before changing Colima, run `colima list` and record the current profile's CPU count and profile name. The following example uses the default profile. Stopping and restarting Colima interrupts the VM and **all containers using it**:
+
+```sh
+colima stop
+colima start --cpu 8
+colima status --json
+```
+
+Confirm Docker targets that profile. Run these commands one at a time, waiting for each to finish; use the same dataset and settings:
+
+```sh
+scripts/matched-core-docker.sh --device cpu --cpu-threads 8
+.venv/bin/python -m shape_classifier train --data-dir "$PWD/data" --checkpoint "$PWD/data/shapes.pth" --device cpu --cpu-threads 8
+.venv/bin/python -m shape_classifier train --data-dir "$PWD/data" --checkpoint "$PWD/data/shapes.pth" --device mps --cpu-threads 8
+.venv/bin/python -m shape_classifier summary --data-dir "$PWD/data"
+```
+
+The launcher checks the running Colima profile and Docker endpoint and passes its observation to the container. If it cannot verify them, the run warns and records the VM CPU count as unknown. A known mismatch also warns, and a request above the container's available CPUs fails. Keep the VM configuration and Docker context unchanged during each run. The launcher-provided observation is not an authenticated security claim.
+
+After the comparison, restore the recorded original count with `colima stop` followed by `colima start --cpu PREVIOUS_COUNT` (replace the placeholder with the recorded number). These are manual host administration commands and affect all containers on that VM.
+
+MPS uses the whole GPU: this application has no control to select a subset of Apple GPU cores. CPU and GPU cores have different architectures and are not equivalent units. Dividing or multiplying GPU timings by a core ratio would ignore parallelism, memory transfers and workload overhead, so GPU results are reported as measured, without scaling or extrapolation.
+
+On this M1 Pro, a sequential comparison using the same synthetic dataset, seed 42, batch size 8 and 60 epochs produced the following measurements. Each run used 8 CPU computation threads; the Colima VM was allocated 8 CPUs. Training time excludes the first epoch. Each row is one run, so it does not establish a general speed advantage.
+
+| Configuration | Training time | Mean epoch | Held-out inference/image | Loss | Training accuracy | Held-out accuracy |
+|---|---:|---:|---:|---:|---:|---:|
+| Docker CPU | 12.770941 s | 0.216457 s | 0.002482 s | 0.764465 | 19/30 (63.3%) | 6/15 (40.0%) |
+| Native CPU | 8.890063 s | 0.150679 s | 0.001091 s | 0.757619 | 20/30 (66.7%) | 6/15 (40.0%) |
+| Native MPS (whole GPU) | 6.508952 s | 0.110321 s | 0.000589 s | 0.760298 | 18/30 (60.0%) | 6/15 (40.0%) |
+
+The thread count does not reserve the performance cores; host load, VM scheduling, GPU overhead and platform arithmetic can affect both timing and accuracy. The held-out set has only 15 synthetic images and was observed before this comparison, so these figures are a small demonstration rather than a pristine real-world evaluation.
 
 For a comparison on this Mac with the default seed 42, batch size 8, 60 epochs and the same generated data, the measured results were:
 

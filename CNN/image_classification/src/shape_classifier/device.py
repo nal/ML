@@ -1,5 +1,7 @@
 """Detect the runtime and select a usable PyTorch device."""
 import os
+import json
+import posixpath
 from pathlib import Path
 import torch
 
@@ -54,11 +56,16 @@ def docker_resources(environment):
     cpus = 'unknown'
     memory = 'unknown'
     try:
-        visible = os.cpu_count()
-        available = available_cpus()
-        if visible and available == visible:
-            cpus = visible
-    except (OSError, ValueError):
+        observation = json.loads(os.environ.get('SHAPE_COLIMA_OBSERVATION', ''))
+        if (isinstance(observation, dict) and type(observation.get('version')) is int
+                and observation['version'] == 1 and type(observation.get('cpus')) is int
+                and observation['cpus'] > 0 and isinstance(observation.get('profile'), str)
+                and observation['profile'].strip() and isinstance(observation.get('docker_endpoint'), str)
+                and observation['docker_endpoint'].startswith('unix:///')
+                and len(observation['docker_endpoint']) > len('unix:///')
+                and posixpath.normpath(observation['docker_endpoint'][7:]) == observation['docker_endpoint'][7:]):
+            cpus = observation['cpus']
+    except (TypeError, ValueError):
         pass
     try:
         lines = Path('/proc/meminfo').read_text().splitlines()

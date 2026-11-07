@@ -8,6 +8,8 @@
 
 **Alternatives considered**: Count all process threads (includes unrelated background threads); set only PyTorch intra-op while assuming all external pools are covered (unverified).
 
+**Pipeline inventory**: `ShapeDataset` opens and decodes PNGs and applies Pillow/torchvision preprocessing synchronously; the loaders use the default `num_workers=0`. Augmentation and model, optimizer and inference operations use eager PyTorch, without JIT fork or a separate application-managed inter-op workload. NumPy is used only to seed its random generator, not for numerical kernels. PyTorch intra-op is therefore the computation pool this pipeline actively invokes; inter-op defaults are not changed, avoiding its one-time setter and preserving repeated in-process training. The configured intra-op count does not cap unrelated system threads. If the pipeline later adds JIT parallel work, external numerical kernels or loader workers, this inventory and enforcement must be revisited.
+
 ## VM allocation evidence
 
 **Decision**: Use a host launcher for the documented Colima workflow. Query machine-readable Colima status for a running selected profile and its CPU allocation and Docker socket; match that socket against the Docker endpoint actually used, and only then forward the count and source to the container. Fail closed to unknown when unsupported, ambiguous, stale, malformed, or mismatched; verify behavior using mocked status/context and real Colima acceptance. Existing direct Docker commands remain usable, with unknown VM allocation when no trustworthy observation is available. Do not mount Docker sockets or change VM configuration from the app.
