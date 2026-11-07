@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-07
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "feature 004 device benchmark". Expanded from the planned feature 004 description in `README.md` §7: add an optional native macOS mode and a device performance comparison, as defined in the "Technical stack" (native macOS and device selection) and "Performance comparison" sections of `CNN_image_classification_research.md`. Docker remains the default runtime.
 
