@@ -1,5 +1,6 @@
 installed:
 - git
+- hld
 settings:
   auto_execute_hooks: true
 hooks:
@@ -137,6 +138,14 @@ hooks:
     priority: 10
     prompt: Commit implementation changes?
     description: Auto-commit after implementation
+    condition: null
+  - extension: hld
+    command: speckit.hld.generate
+    enabled: true
+    optional: true
+    priority: 10
+    prompt: Refresh the High-Level Design (docs/hld) for this feature?
+    description: Keep the system-wide HLD in sync after a feature is implemented
     condition: null
   after_checklist:
   - extension: git
