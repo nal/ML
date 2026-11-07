@@ -329,7 +329,15 @@ docker run --rm -v "$PWD/data:/data" --entrypoint python shape-classifier -m sha
 
 The summary groups different datasets and settings separately. It shows mean training time excluding the first warm-up epoch, inference time per held-out image, final loss, and training and held-out accuracy together. With one epoch the excluded training times are unavailable. An MPS result that is slower is still reported as measured; this small synthetic dataset is not evidence of real-world performance.
 
-For a smoke comparison on this Mac with seed 42, batch size 8, two epochs and the same generated data, Docker CPU used two threads and took 0.433 seconds for its measured epoch; native CPU used ten threads and its two measured epochs took 0.167 and 0.154 seconds; native MPS took 0.118 seconds. All runs had 10/30 training and 5/15 held-out correct. These short measurements vary with machine load and are not a general speed claim.
+For a comparison on this Mac with the default seed 42, batch size 8, 60 epochs and the same generated data, the measured results were:
+
+| Configuration | Runs | Training time excluding first epoch | Mean epoch time | Inference per image | Final loss | Training accuracy | Held-out accuracy |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Docker CPU (2 threads) | 1 | 24.633 s | 0.418 s | 0.002419 s | 0.7650 | 19/30 (63.3%) | 6/15 (40.0%) |
+| Native CPU (10 threads) | 2 | 9.306 s | 0.158 s | 0.001201 s | 0.7576 | 20/30 (66.7%) | 6/15 (40.0%) |
+| Native MPS | 1 | 6.901 s | 0.117 s | 0.000567 s | 0.7603 | 18/30 (60.0%) | 6/15 (40.0%) |
+
+The two native CPU runs had identical accuracies and loss; their warm-up-excluded times were 9.411 and 9.201 seconds (about 2.3% apart). Timing varies with machine load, and these results are not a general speed claim.
 
 Run the regression checks with:
 

@@ -69,13 +69,19 @@ class ResultTests(unittest.TestCase):
         self.assertIn('seed: 42', output)
         self.assertIn('seed: 43', output)
         self.assertIn('not yet measured', output)
-        self.assertIn('Train accuracy Held-out accuracy', output)
+        self.assertIn('Train accuracy', output)
+        self.assertIn('Held-out accuracy', output)
+        lines = output.splitlines()
+        header = next(line for line in lines if 'Environment' in line and 'Device' in line)
+        row = next(line for line in lines if line.startswith('native') and 'cpu' in line)
+        self.assertEqual([i for i, c in enumerate(header) if c == '|'], [i for i, c in enumerate(row) if c == '|'])
 
     def test_summary_averages_repeats_and_rejects_versions(self):
         import json
         base = dict(run_id='a', timestamp='2026-01-01T00:00:00Z', environment='native', device='cpu', python_version='3.14.10', pytorch_version='2.15.0', data_id='data', epochs=2, batch_size=8, cpu_threads=1, seed=42, train_correct=1, train_total=2, held_out_correct=1, held_out_total=2, training_seconds=2, epoch_seconds=2, inference_seconds=0.1, loss=1.0, docker_cpus=None, docker_memory=None)
         output = format_summary([base, dict(base, run_id='b', training_seconds=4, epoch_seconds=4)])
-        self.assertIn('native cpu 2 3.000000 3.000000', output)
+        row = next(line for line in output.splitlines() if line.startswith('native') and 'cpu' in line)
+        self.assertEqual([part.strip() for part in row.split('|')][:5], ['native', 'cpu', '2', '3.000000', '3.000000'])
         with tempfile.TemporaryDirectory() as root:
             path = Path(root) / 'benchmark-results.json'
             path.write_text(json.dumps({'version': 99, 'entries': []}))

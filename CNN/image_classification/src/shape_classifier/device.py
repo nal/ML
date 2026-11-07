@@ -48,5 +48,27 @@ def available_cpus():
 
 
 def docker_resources(environment):
-    # Container limits do not necessarily reveal the host VM allocation.
-    return ('unknown', 'unknown') if environment == 'docker' else (None, None)
+    """Report VM resources only where container constraints don't obscure them."""
+    if environment != 'docker':
+        return None, None
+    cpus = 'unknown'
+    memory = 'unknown'
+    try:
+        visible = os.cpu_count()
+        available = available_cpus()
+        if visible and available == visible:
+            cpus = visible
+    except (OSError, ValueError):
+        pass
+    try:
+        lines = Path('/proc/meminfo').read_text().splitlines()
+        total = next(int(line.split()[1]) * 1024 for line in lines if line.startswith('MemTotal:'))
+        try:
+            limit = Path('/sys/fs/cgroup/memory.max').read_text().strip()
+        except OSError:
+            limit = Path('/sys/fs/cgroup/memory/memory.limit_in_bytes').read_text().strip()
+        if limit == 'max' or int(limit) >= total:
+            memory = total
+    except (OSError, ValueError, IndexError, StopIteration):
+        pass
+    return cpus, memory

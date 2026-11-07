@@ -162,3 +162,36 @@ p.publish(root, checkpoint, lambda path: path.write_bytes(b'new'), e)
                 self.assertEqual(recover.returncode, 0, recover.stderr)
                 self.assertIn(recover.stdout.strip(), ('circle', 'rectangle', 'triangle'))
                 self.assertFalse((root / '.benchmark-transaction.json').exists())
+
+    def test_committed_journal_with_inaccessible_external_checkpoint_is_preserved(self):
+        import json
+        from shape_classifier.publication import recover_results
+        entry = dict(run_id='run', timestamp='2026-01-01T00:00:00Z', environment='native', device='cpu', python_version='3.14.10', pytorch_version='2.15.0', data_id='abc', epochs=1, batch_size=8, cpu_threads=1, seed=42, train_correct=1, train_total=2, held_out_correct=1, held_out_total=2, training_seconds=None, epoch_seconds=None, inference_seconds=0.1, loss=1.0, docker_cpus=None, docker_memory=None)
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            journal = root / '.benchmark-transaction.json'
+            journal.write_text(json.dumps({'run_id': 'run', 'checkpoint': '/nonexistent-device-benchmark/model.pth', 'backup': None}))
+            (root / 'benchmark-results.json').write_text(json.dumps({'version': 1, 'entries': [entry]}))
+            with self.assertRaisesRegex(RuntimeError, 'checkpoint'):
+                recover_results(root)
+            self.assertTrue(journal.exists())
+
+    def test_inaccessible_external_checkpoint_preserves_journal_and_sidecar(self):
+        import json
+        from shape_classifier.publication import recover_results
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name) / 'results'
+            external = Path(name) / 'external'
+            root.mkdir()
+            external.mkdir()
+            checkpoint = external / 'model.pth'
+            sidecar = Path(str(checkpoint) + '.transaction')
+            sidecar.write_text(json.dumps({'journal': '../results/.benchmark-transaction.json'}))
+            journal = root / '.benchmark-transaction.json'
+            journal.write_text(json.dumps({'run_id': 'run', 'checkpoint': '../external/model.pth', 'backup': None}))
+            original = Path.is_dir
+            with patch.object(Path, 'is_dir', lambda p: False if p == external.resolve() else original(p)):
+                with self.assertRaisesRegex(RuntimeError, 'checkpoint directory is unavailable'):
+                    recover_results(root)
+            self.assertTrue(journal.exists())
+            self.assertTrue(sidecar.exists())

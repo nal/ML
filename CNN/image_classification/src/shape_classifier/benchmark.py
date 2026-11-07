@@ -75,17 +75,27 @@ def format_summary(entries):
     lines = []
     for key, group in sorted(groups.items()):
         lines.append(f'Data: {key[0]}; seed: {key[1]}; epochs: {key[2]}; batch size: {key[3]}')
-        lines.append('Environment Device Runs Training(s) Epoch(s) Inference(s/image) Loss Train accuracy Held-out accuracy')
+        headers = ('Environment', 'Device', 'Runs', 'Training (s)', 'Epoch (s)',
+                   'Inference (s/image)', 'Loss', 'Train accuracy', 'Held-out accuracy')
+        table = []
         for environment, device in (('docker', 'cpu'), ('native', 'cpu'), ('native', 'mps')):
             rows = [e for e in group if (e['environment'], e['device']) == (environment, device)]
             if not rows:
-                lines.append(f'{environment} {device} 0 not yet measured')
+                table.append((environment, device, '0', 'not yet measured', '-', '-', '-', '-', '-'))
                 continue
             def avg(key):
                 values = [e[key] for e in rows if e[key] is not None]
                 return f'{mean(values):.6f}' if values else 'unavailable'
             train = mean(e['train_correct']/e['train_total'] for e in rows)
             held = mean(e['held_out_correct']/e['held_out_total'] for e in rows)
-            lines.append(f'{environment} {device} {len(rows)} {avg("training_seconds")} {avg("epoch_seconds")} {avg("inference_seconds")} {avg("loss")} {train:.4f} {held:.4f}')
+            table.append((environment, device, str(len(rows)), avg('training_seconds'),
+                          avg('epoch_seconds'), avg('inference_seconds'), avg('loss'),
+                          f'{train:.4f}', f'{held:.4f}'))
+        widths = [max(len(row[i]) for row in [headers, *table]) for i in range(len(headers))]
+        def render(row):
+            return ' | '.join(value.ljust(widths[i]) for i, value in enumerate(row)).rstrip()
+        lines.append(render(headers))
+        lines.append('-+-'.join('-' * width for width in widths))
+        lines.extend(render(row) for row in table)
     lines.append('Small synthetic demo; CPU and GPU arithmetic differ, resources vary, and GPU may be slower.')
     return '\n'.join(lines)

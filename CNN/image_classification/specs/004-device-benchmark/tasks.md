@@ -86,3 +86,11 @@ Setup → foundation → US1 → US2 → US3 → US4 → final validation. US2 n
 ## Implementation Strategy
 
 Deliver US1 as the MVP and verify Docker failure behavior and native device selection. Then add native setup and cross-device compatibility, followed by recording/summary and honest interpretation. Finish with full Docker and native validation; do not mark platform-specific checks complete without executing them.
+
+## Phase 8: Convergence
+
+- [X] T032 Record Docker VM CPU count and memory in benchmark entries when discoverable from inside the container (available CPUs and `/proc/meminfo` MemTotal when no tighter cgroup limit applies), falling back to `unknown` only when they cannot be determined, in `src/shape_classifier/device.py`, with tests in `tests/test_benchmark.py` per FR-012, US3/AC1 (partial)
+- [X] T033 Make publication recovery verify that the recorded checkpoint location is resolvable and accessible before restoring or removing outputs, and fail clearly while preserving the journal and sidecar when it is not, in `src/shape_classifier/publication.py`; add the inaccessible external recovery location test in `tests/test_publication.py` per data-model: publication transaction, T017, T022 (partial)
+- [X] T034 Measure repeated CPU training runs with identical data and settings and document the observed repeat-run variation in `README.md` per SC-008, T027 (partial)
+- [X] T035 Run Docker CPU, native CPU and native MPS training sequentially at default settings on the same data and replace the README smoke comparison with the resulting summary (warm-up-excluded timing, inference per image, loss and paired accuracy) in `README.md` per SC-004, SC-007, T028, T030 (partial)
+- [X] T036 Format the summary as an aligned table with unambiguous column headers in `src/shape_classifier/benchmark.py`, updating `tests/test_results.py` per FR-017 (partial)

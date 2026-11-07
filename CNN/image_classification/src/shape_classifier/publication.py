@@ -50,8 +50,12 @@ def _recover(journal):
         state = json.loads(journal.read_text())
         checkpoint = (journal.parent / state['checkpoint']).resolve()
         backup = checkpoint.parent / state['backup'] if state['backup'] else None
+        if not checkpoint.parent.is_dir() or not os.access(checkpoint.parent, os.R_OK | os.W_OK | os.X_OK):
+            raise OSError(f'checkpoint directory is unavailable: {checkpoint.parent}')
         result = journal.parent / 'benchmark-results.json'
         committed = any(e['run_id'] == state['run_id'] for e in read_results(result))
+        if committed and (not checkpoint.is_file() or not os.access(checkpoint, os.R_OK)):
+            raise OSError(f'committed checkpoint is unavailable: {checkpoint}')
         if not committed:
             if backup:
                 if not backup.exists():

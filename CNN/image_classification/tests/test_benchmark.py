@@ -54,3 +54,19 @@ class MeasurementTests(unittest.TestCase):
         self.assertIsNotNone(captured[0]['epoch_seconds'])
         self.assertEqual(captured[0]['cpu_threads'], 1)
         self.assertGreaterEqual(captured[0]['inference_seconds'], 0)
+
+    def test_docker_resources_reports_known_vm_values_and_respects_limits(self):
+        from unittest.mock import patch
+        from shape_classifier.device import docker_resources
+        def files(path, *args, **kwargs):
+            values = {'/proc/meminfo': 'MemTotal:       2097152 kB\n', '/sys/fs/cgroup/memory.max': 'max\n'}
+            if str(path) not in values: raise FileNotFoundError(str(path))
+            return values[str(path)]
+        with patch('pathlib.Path.read_text', files), patch('shape_classifier.device.available_cpus', return_value=4), patch('shape_classifier.device.os.cpu_count', return_value=4):
+            self.assertEqual(docker_resources('docker'), (4, 2097152 * 1024))
+            self.assertEqual(docker_resources('native'), (None, None))
+        def limited(path, *args, **kwargs):
+            if str(path) == '/sys/fs/cgroup/memory.max': return '1048576\n'
+            return files(path, *args, **kwargs)
+        with patch('pathlib.Path.read_text', limited), patch('shape_classifier.device.available_cpus', return_value=2), patch('shape_classifier.device.os.cpu_count', return_value=4):
+            self.assertEqual(docker_resources('docker'), ('unknown', 'unknown'))
