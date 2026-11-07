@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-06
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: Generate the training and held-out synthetic shape datasets described in the project research document.
 
