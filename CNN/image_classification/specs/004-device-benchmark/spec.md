@@ -12,6 +12,7 @@
 
 ### Session 2026-11-07
 
+- Q: If training finishes but the benchmark entry cannot be saved, what should happen to the newly trained checkpoint? → A: Keep the existing checkpoint unchanged and report failure.
 - Q: Which CPU thread policy should benchmark runs use: keep 1 thread (deterministic), use all available cores, or add a thread-count option defaulting to 1? → A: Use all available cores for every training run.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -86,6 +87,7 @@ A user reads the documentation and the summary and understands what the numbers 
 
 ### Edge Cases
 
+- If a benchmark entry cannot be saved after training, the command fails and leaves any existing checkpoint unchanged.
 - A run with exactly one epoch cannot exclude a warm-up epoch. The per-epoch and warm-up-excluded figures are recorded as unavailable, not as zero, and the run still succeeds.
 - The native environment reports a GPU as present but unusable, for example on an old OS version. Device `mps` fails clearly; `auto` uses the CPU and says so.
 - The results file is missing. The first successful run creates it. If the summary is requested with no file or no entries, it prints a clear "no results yet" message and exits successfully.
@@ -125,7 +127,7 @@ A user reads the documentation and the summary and understands what the numbers 
 - **FR-013**: Timings on the GPU MUST be taken only after all queued GPU work for the timed interval has completed.
 - **FR-014**: Held-out data MUST be used only for measuring accuracy and inference time after training. It MUST NOT influence training, model selection or any configuration choice.
 - **FR-015**: Every training run on the CPU MUST use all CPU cores available to its environment, replacing the current single-thread setting. Inside Docker that means the cores allocated to the Docker VM. No thread-count option is added. The thread count used MUST be reported at the start of the run and recorded in each entry. Other reproducibility measures (fixed seeds, deterministic algorithms where supported) MUST remain in place.
-- **FR-016**: A failed or interrupted run MUST NOT add an entry, and concurrent writers MUST NOT corrupt the results file.
+- **FR-016**: A failed or interrupted run MUST NOT add an entry, and concurrent writers MUST NOT corrupt the results file. If the benchmark entry cannot be saved, training MUST report failure and leave any existing checkpoint unchanged.
 
 **Summary**
 
