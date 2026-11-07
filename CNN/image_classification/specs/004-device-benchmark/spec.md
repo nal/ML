@@ -67,7 +67,7 @@ A user trains under three configurations, Docker CPU, native CPU and native GPU,
 2. **Given** entries for all three configurations, **When** the user runs the summary command, **Then** it prints a table with one row per configuration showing the number of runs and the timing and accuracy figures.
 3. **Given** entries for only some configurations, **When** the user runs the summary command, **Then** it shows those configurations and marks the missing ones as not yet measured.
 4. **Given** a GPU run, **When** times are recorded, **Then** they include all GPU work submitted during the timed interval, so GPU times are not understated.
-5. **Given** a run that fails or is interrupted, **When** it stops, **Then** no entry is added for it.
+5. **Given** a run that fails or is interrupted before its entry is committed, **When** it stops, **Then** no entry is added for it; an entry committed before termination remains.
 
 ---
 
@@ -127,7 +127,7 @@ A user reads the documentation and the summary and understands what the numbers 
 - **FR-013**: Timings on the GPU MUST be taken only after all queued GPU work for the timed interval has completed.
 - **FR-014**: Held-out data MUST be used only for measuring accuracy and inference time after training. It MUST NOT influence training, model selection or any configuration choice.
 - **FR-015**: Every training run on the CPU MUST use all CPU cores available to its environment, replacing the current single-thread setting. Inside Docker that means the cores allocated to the Docker VM. No thread-count option is added. The thread count used MUST be reported at the start of the run and recorded in each entry. Other reproducibility measures (fixed seeds, deterministic algorithms where supported) MUST remain in place.
-- **FR-016**: A failed or interrupted run MUST NOT add an entry, and concurrent writers MUST NOT corrupt the results file. If the benchmark entry cannot be saved, training MUST report failure and leave any existing checkpoint unchanged.
+- **FR-016**: A run that fails or is interrupted before the results entry is atomically committed MUST NOT add an entry. Once the entry is committed, the run is complete and the entry remains even if termination follows immediately. Concurrent writers MUST NOT corrupt the results file. If the benchmark entry cannot be saved, training MUST report failure and leave any existing checkpoint unchanged.
 
 **Summary**
 
@@ -158,7 +158,7 @@ A user reads the documentation and the summary and understands what the numbers 
 - **SC-003**: A user can go from a fresh clone to a working native environment, with matching versions, by following the documentation in under 15 minutes, excluding download time.
 - **SC-004**: After one training run in each of the three configurations on the same data, the summary shows all three with run counts, timings that exclude the warm-up epoch, inference time per image, final loss and paired training and held-out accuracy.
 - **SC-005**: A model trained in any configuration can be evaluated and used for prediction in every other configuration, and models saved by features 002 and 003 still load.
-- **SC-006**: Two consecutive successful runs add exactly two entries, and a failed or interrupted run adds none.
+- **SC-006**: Two consecutive successful runs add exactly two entries; a run that fails or is interrupted before its entry is committed adds none, and an entry committed before termination remains.
 - **SC-008**: Every CPU run's entry records a thread count equal to the number of cores available to its environment, and the documentation reports the observed repeat-run variation for CPU runs.
 - **SC-007**: The documentation states every caveat listed in User Story 4, and the published comparison reports measured numbers even if the GPU is slower.
 
