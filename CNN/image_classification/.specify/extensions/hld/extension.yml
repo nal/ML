@@ -1,0 +1,31 @@
+schema_version: "1.0"
+
+extension:
+  id: hld
+  name: "High-Level Design"
+  version: "1.0.0"
+  description: "Human-oriented, system-wide High-Level Design (Markdown + Mermaid) and a Slidev presentation, generated from the code and all feature specs"
+  author: local
+  license: MIT
+
+requires:
+  speckit_version: ">=0.2.0"
+  tools:
+    - name: node
+      required: false
+
+provides:
+  commands:
+    - name: speckit.hld.generate
+      file: commands/speckit.hld.generate.md
+      description: "Create or refresh docs/hld/hld.md, the system-wide High-Level Design with Mermaid diagrams"
+    - name: speckit.hld.slides
+      file: commands/speckit.hld.slides.md
+      description: "Create or refresh docs/hld/slides.md, an animated Slidev deck built from the HLD"
+
+hooks:
+  after_implement:
+    command: speckit.hld.generate
+    optional: true
+    prompt: "Refresh the High-Level Design (docs/hld) for this feature?"
+    description: "Keep the system-wide HLD in sync after a feature is implemented"

@@ -1,0 +1,1 @@
+../../../.specify/extensions/hld/.specify-dev/agent-commands/claude/speckit-hld-generate/SKILL.md
