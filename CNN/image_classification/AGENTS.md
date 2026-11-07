@@ -15,6 +15,16 @@ Rules for any coding agent (Claude Code, Codex) working in this project.
 - Do not rename Spec Kit branches: the `NNN` prefix links a branch to its `specs/NNN-slug/` folder.
 - Settings: `.specify/extensions/git/git-config.yml`.
 
+## Feature numbers
+
+`specs/` is the single source of truth for feature numbers. This keeps branch numbers, spec folders and the README from drifting apart.
+
+- A feature number exists only if `specs/NNN-slug/` exists. Only `/speckit-specify` assigns numbers. Never reserve a number in advance or create a `feat/NNN-…` branch by hand.
+- Work that is not a Spec Kit feature (docs, tooling, chores, fixes outside a feature) uses an **unnumbered** branch, for example `docs/hld` or `chore/feature-numbering`.
+- Each `spec.md` keeps ``**Feature Branch**: `feat/NNN-slug` `` and `**Status**:` set to one of `Draft`, `In Progress`, `Implemented`. Set `Implemented` when `/speckit-converge` reports Converged and the feature's checks pass.
+- The README feature table is generated: run `python3 scripts/features.py --write` after adding a spec or changing a Status. Never edit the table by hand, and refer to planned work by name, not number.
+- The pre-commit hook runs `python3 scripts/features.py --check`. If it fails, fix the cause (add the missing spec, rename the branch to an unnumbered one, or regenerate the table) instead of bypassing it.
+
 ## Commit messages
 
 Every commit must follow [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/). A `commit-msg` hook rejects commits that don't.
@@ -51,12 +61,12 @@ Spec Kit auto-commits after constitution, specify, clarify, plan, tasks, analyze
 
 ## Commit hook
 
-- Config: `.pre-commit-config.yaml` in this folder (`conventional-pre-commit`, `commit-msg` stage).
+- Config: `.pre-commit-config.yaml` in this folder: `conventional-pre-commit` (`commit-msg` stage) and the feature-ledger check (`pre-commit` stage).
 - Install once per clone, from the `ML/` repository root:
 
   ```
   uv tool install pre-commit
-  pre-commit install --hook-type commit-msg -c CNN/image_classification/.pre-commit-config.yaml
+  pre-commit install -c CNN/image_classification/.pre-commit-config.yaml
   ```
 
-- If a commit is rejected, fix the message and commit again. Never bypass the hook with `--no-verify`.
+- If a commit is rejected, fix the message or the ledger problem and commit again. Never bypass the hooks with `--no-verify`.
