@@ -29,14 +29,9 @@ def save_checkpoint(path, model, seed, train_seed, held_out_seed, environment="d
 
 def load_checkpoint(path):
     try:
-        from .publication import recover_checkpoint, locked, _checkpoint_lock, _sidecar
-        while True:
-            recover_checkpoint(path)
-            with locked(_checkpoint_lock(path)):
-                if _sidecar(path).exists():
-                    continue
-                checkpoint = torch.load(path, map_location='cpu', weights_only=True)
-                break
+        from .publication import recover_checkpoint
+        recover_checkpoint(path)
+        checkpoint = torch.load(path, map_location='cpu', weights_only=True)
         if not isinstance(checkpoint, dict) or set(checkpoint) != {'state_dict', 'metadata'}:
             raise ValueError('invalid checkpoint structure')
         meta = checkpoint['metadata']

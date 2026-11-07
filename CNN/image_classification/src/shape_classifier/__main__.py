@@ -5,7 +5,7 @@ import sys
 import torch
 from .device import resolve_device, available_cpus
 from .benchmark import read_results, format_summary
-from .publication import locked, _result_lock, recover_results
+from .publication import recover_results
 from pathlib import Path
 from .predict import predict
 from .train import evaluate, train
@@ -44,13 +44,8 @@ def main(argv=None):
             if not root.exists():
                 print('No results yet.')
                 return 0
-            while True:
-                recover_results(root)
-                with locked(_result_lock(root)):
-                    if (root / '.benchmark-transaction.json').exists():
-                        continue
-                    print(format_summary(read_results(root / 'benchmark-results.json')))
-                    break
+            recover_results(root)
+            print(format_summary(read_results(root / 'benchmark-results.json')))
             return 0
         environment, device = resolve_device(args.device)
         print(f'Environment: {environment}; device: {device}; Python: {platform.python_version()}; PyTorch: {torch.__version__}', file=sys.stderr)

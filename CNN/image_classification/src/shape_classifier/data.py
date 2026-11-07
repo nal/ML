@@ -51,7 +51,7 @@ def dataset_fingerprint(root):
     root = Path(root)
     digest = hashlib.sha256()
     for split in ('train', 'held-out'):
-        for path in sorted((root / split).rglob('*.png')):
+        for path in sorted(p for p in (root / split).rglob('*') if p.is_file() and p.suffix.lower() == '.png'):
             name = path.relative_to(root).as_posix().encode()
             contents = path.read_bytes()
             for part in (name, contents):

@@ -314,7 +314,22 @@ Training and evaluation report the correct counts and accuracy for both the 30 t
 
 In the [epoch comparison](specs/003-improve-default-training/comparison.md), 30 epochs took 21.63 seconds in the training loop and achieved 16/30 training and 7/15 held-out; 60 epochs took 45.71 seconds and achieved 19/30 training and 6/15 held-out. The longer default met the training-only selection rule but did not improve this held-out result. These times depend on the machine; the held-out result had already been observed before this comparison and is not a pristine test.
 
-This image uses one CPU thread and deterministic algorithms, so repeated runs with the same data, seed, and settings in the same image are expected to match. Across PyTorch builds, CPUs, and thread counts, floating-point operation order and kernel selection can vary, so fixed seeds do not guarantee identical results across environments.
+CPU training uses all cores available to its environment. Fixed seeds and deterministic algorithms remain enabled where supported, but multithreaded CPU runs can vary slightly between repeats and machines. CPU and MPS arithmetic are not bit-identical, and MPS runs are not guaranteed to reproduce bit for bit. Docker may have fewer CPU cores or less memory than the Mac.
+
+### Device benchmark
+
+Run each command **sequentially** and wait for it to finish before starting the next command that accesses the same results or checkpoint. Overlapping runs or reads are unsupported and may not be detected. Docker CPU, native CPU and native MPS must use the same images, seed, epochs and batch size for a direct comparison:
+
+```sh
+docker run --rm -v "$PWD/data:/data" --entrypoint python shape-classifier -m shape_classifier train --device cpu
+.venv/bin/python -m shape_classifier train --data-dir "$PWD/data" --checkpoint "$PWD/data/shapes.pth" --device cpu
+.venv/bin/python -m shape_classifier train --data-dir "$PWD/data" --checkpoint "$PWD/data/shapes.pth" --device mps
+.venv/bin/python -m shape_classifier summary --data-dir "$PWD/data"
+```
+
+The summary groups different datasets and settings separately. It shows mean training time excluding the first warm-up epoch, inference time per held-out image, final loss, and training and held-out accuracy together. With one epoch the excluded training times are unavailable. An MPS result that is slower is still reported as measured; this small synthetic dataset is not evidence of real-world performance.
+
+For a smoke comparison on this Mac with seed 42, batch size 8, two epochs and the same generated data, Docker CPU used two threads and took 0.433 seconds for its measured epoch; native CPU used ten threads and its two measured epochs took 0.167 and 0.154 seconds; native MPS took 0.118 seconds. All runs had 10/30 training and 5/15 held-out correct. These short measurements vary with machine load and are not a general speed claim.
 
 Run the regression checks with:
 

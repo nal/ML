@@ -18,3 +18,39 @@ class MeasurementTests(unittest.TestCase):
             before = dataset_fingerprint(root)
             p.write_bytes(b'b')
             self.assertNotEqual(before, dataset_fingerprint(root))
+            upper = p.with_name('B.PNG')
+            upper.write_bytes(b'c')
+            with_upper = dataset_fingerprint(root)
+            upper.write_bytes(b'd')
+            self.assertNotEqual(with_upper, dataset_fingerprint(root))
+
+    def test_cpu_thread_detection_returns_positive_count(self):
+        from shape_classifier.device import available_cpus
+        self.assertGreater(available_cpus(), 0)
+
+    def test_training_synchronizes_mps_and_excludes_warmup(self):
+        from unittest.mock import patch
+        import torch
+        from shape_classifier.train import train
+        class TinyDataset(torch.utils.data.Dataset):
+            def __init__(self, root, split): self.split = split
+            def __len__(self): return 2
+            def __getitem__(self, index): return torch.tensor([float(index)]), index
+        captured = []
+        with tempfile.TemporaryDirectory() as root, \
+             patch('shape_classifier.train.ShapeDataset', TinyDataset), \
+             patch('shape_classifier.train.ShapeClassifier', lambda: torch.nn.Linear(1, 2)), \
+             patch('shape_classifier.train.augment', lambda image: image), \
+             patch('shape_classifier.train.dataset_fingerprint', return_value='hash'), \
+             patch('shape_classifier.train.available_cpus', return_value=1), \
+             patch('shape_classifier.train.publish', side_effect=lambda root, checkpoint, write, entry: captured.append(entry)), \
+             patch('shape_classifier.train.recover_checkpoint'), \
+             patch('shape_classifier.train.torch.mps.synchronize') as sync, \
+             patch.object(torch.nn.Module, 'to', lambda self, *a, **k: self), \
+             patch.object(torch.Tensor, 'to', lambda self, *a, **k: self):
+            results = train(root, Path(root) / 'model.pth', epochs=2, batch_size=2, device='mps', environment='native')
+        self.assertEqual(sync.call_count, 6)
+        self.assertEqual([total for _, total in results], [2, 2])
+        self.assertIsNotNone(captured[0]['epoch_seconds'])
+        self.assertEqual(captured[0]['cpu_threads'], 1)
+        self.assertGreaterEqual(captured[0]['inference_seconds'], 0)
