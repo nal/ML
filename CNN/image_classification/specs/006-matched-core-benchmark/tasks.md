@@ -33,7 +33,7 @@ description: "Implementation tasks for the matched-core benchmark"
 - [ ] T005 [US1] Add training-only `--cpu-threads N` parsing and early validation in `src/shape_classifier/__main__.py`: N is a positive integer no greater than process-available CPUs; report requested and available counts on excess before data loading or recovery/publication writes.
 - [ ] T006 [US1] Configure all active training CPU computation pools identified in T002 before their initialization in `src/shape_classifier/train.py`; preserve the all-available default, report the configured count, enforce explicit count agreement, and leave GPU allocation and evaluation/prediction threading unchanged.
 - [ ] T007 [US1] Extend entries in `src/shape_classifier/train.py` with `requested_cpu_threads`: "positive integer or null for default; absent in legacy entries also means default"; keep `cpu_threads` as the existing positive configured count and preserve transactional publication.
-- [ ] T008 [US1] Extend validation in `src/shape_classifier/benchmark.py` for the new nullable request field while accepting legacy entries unchanged; reject invalid new values and preserve the existing version-1 format.
+- [ ] T008 [US1] Extend validation in `src/shape_classifier/benchmark.py` for the new nullable request field while accepting legacy entries unchanged; reject invalid new values and preserve the existing version-1 format. Validate new Docker `docker_cpu_provenance` as `launcher` only with a positive `docker_cpus`, or `unknown` only with `docker_cpus` equal to `"unknown"`; an absent provenance field denotes a legacy entry and remains valid.
 
 **Checkpoint**: Run the US1 tests and an explicit/default training comparison before proceeding.
 
@@ -45,15 +45,15 @@ description: "Implementation tasks for the matched-core benchmark"
 
 ### Tests
 
-- [ ] T009 [P] [US2] Add allocation evidence and warning tests in `tests/test_device.py` for verified matching/mismatching values, missing or malformed evidence, container restrictions, and the unknown fallback.
-- [ ] T010 [P] [US2] Add host-launcher tests in `tests/test_colima_launcher.py` using mocked Colima status and Docker endpoint responses for matching profiles, overridden endpoints, stopped or ambiguous profiles, malformed and unsupported responses, and no VM configuration changes.
+- [ ] T009 [P] [US2] Add allocation evidence and warning tests in `tests/test_device.py` for matching/mismatching values, missing or malformed versioned JSON fields, container restrictions, and the unknown fallback.
+- [ ] T010 [P] [US2] Add host-launcher tests in `tests/test_colima_launcher.py` using mocked Colima status and Docker endpoint responses for matching profiles, overridden endpoints, stopped or ambiguous profiles, malformed and unsupported responses, inherited handoff removal, versioned JSON fields, and no VM configuration changes.
 
 ### Implementation
 
-- [ ] T011 [US2] Implement `scripts/matched-core-docker.sh` to query the running Colima profile's machine-readable CPU allocation and socket, compare the effective Docker endpoint, and pass validated launch-time observation and provenance into the container; fail closed to unknown on uncertainty and never change the VM.
-- [ ] T012 [US2] Replace container-visible CPU inference in `src/shape_classifier/device.py` with conservative validation of launcher evidence; `docker_cpus` is an "existing positive integer or \"unknown\" for Docker; retain existing native representation" and unverifiable evidence is unknown.
-- [ ] T013 [US2] Integrate the observation in `src/shape_classifier/__main__.py` and `src/shape_classifier/train.py`: report VM allocation, warn for unknown and for a known mismatch with an explicit request, continue valid runs, and record the observation per entry.
-- [ ] T014 [US2] Document in `README.md` how to inspect, manually stop/restart Colima with 8 CPUs, run the launcher, restore the original allocation, and account for the restart affecting all containers and for no VM/context changes during a run.
+- [ ] T011 [US2] Implement `scripts/matched-core-docker.sh` to query the running Colima profile's machine-readable CPU allocation and socket, compare the effective Docker endpoint, and pass the versioned JSON `SHAPE_COLIMA_OBSERVATION` defined in `contracts/cli.md` into the container, first discarding inherited values; fail closed to unknown on uncertainty and never change the VM.
+- [ ] T012 [US2] Replace container-visible CPU inference in `src/shape_classifier/device.py` with conservative validation of the versioned launcher assertion defined in `specs/006-matched-core-benchmark/contracts/cli.md`; `docker_cpus` is an "existing positive integer or \"unknown\" for Docker; retain existing native representation" and unverifiable evidence is unknown.
+- [ ] T013 [US2] Integrate the observation in `src/shape_classifier/__main__.py` and `src/shape_classifier/train.py`: report VM allocation, warn for unknown and for a known mismatch with an explicit request, continue valid runs, and record the observation and `docker_cpu_provenance` (`launcher` or `unknown`) per new Docker entry.
+- [ ] T014 [US2] Document in `README.md` how to inspect, manually stop/restart Colima with 8 CPUs, run the launcher, restore the original allocation, and account for the restart affecting all containers and for no VM/context changes during a run; include runnable Docker CPU, native CPU and native MPS commands at matching settings and instruct users to run them sequentially.
 
 **Checkpoint**: Run launcher and device tests; verify real Colima behavior when the reference environment is available and its reconfiguration has been authorized.
 
@@ -65,13 +65,13 @@ description: "Implementation tasks for the matched-core benchmark"
 
 ### Tests
 
-- [ ] T015 [P] [US3] Add mixed legacy/new schema and no-rewrite coverage in `tests/test_results.py`, including absent, null, valid and invalid request fields and retained legacy Docker allocation values.
-- [ ] T016 [P] [US3] Add summary grouping and display tests in `tests/test_benchmark.py` for differing actual threads and known/unknown VM counts, default/explicit/mixed provenance, whole-GPU times, paired accuracies and missing configurations.
+- [ ] T015 [P] [US3] Add mixed legacy/new schema and no-rewrite coverage in `tests/test_results.py`, including absent, null, valid and invalid request fields; valid and invalid provenance values and combinations with `docker_cpus`; and retained legacy Docker allocation values labeled `legacy-unverified`, including separation from launcher-observed counts.
+- [ ] T016 [P] [US3] Add summary grouping and display tests in `tests/test_benchmark.py` for differing actual threads and known/unknown VM counts, allocation provenance including legacy-unverified, default/explicit/mixed request provenance, whole-GPU times, paired accuracies and missing configurations.
 
 ### Implementation
 
-- [ ] T017 [US3] Extend grouping in `src/shape_classifier/benchmark.py` using existing dataset, seed, epochs, batch size, environment and device plus actual `cpu_threads` and Docker `docker_cpus`, treating unknown as distinct and leaving legacy records untouched.
-- [ ] T018 [US3] Extend summary output in `src/shape_classifier/benchmark.py` to show per-row actual CPU threads, Docker allocation, default/explicit/mixed request provenance, run counts and paired accuracies; label MPS whole GPU and preserve measured times without scaling or extrapolation.
+- [ ] T017 [US3] Extend grouping in `src/shape_classifier/benchmark.py` using existing dataset, seed, epochs, batch size, environment and device plus actual `cpu_threads`, Docker `docker_cpus` and Docker allocation provenance; treat unknown and legacy-unverified as distinct and leave legacy records untouched.
+- [ ] T018 [US3] Extend summary output in `src/shape_classifier/benchmark.py` to show per-row actual CPU threads, Docker allocation and allocation provenance, default/explicit/mixed request provenance, run counts and paired accuracies; label MPS whole GPU and preserve measured times without scaling or extrapolation.
 
 **Checkpoint**: Run summary tests against mixed results and verify that reading the file does not mutate it.
 

@@ -18,8 +18,8 @@
 
 ## Results compatibility and grouping
 
-**Decision**: Extend existing version-1 entries with nullable `requested_cpu_threads`; retain `cpu_threads` and `docker_cpus`. Missing requested field means default. Validate the new field when present without rewriting old entries. Group by existing workload and environment/device keys plus actual CPU threads and Docker VM count, including unknown as a distinct value; indicate explicit/default/mixed request provenance in a group. Display MPS as whole GPU with CPU threads separate and use the existing measured averages only.
+**Decision**: Extend existing version-1 entries with nullable `requested_cpu_threads`; retain `cpu_threads` and `docker_cpus`. Missing requested field means default. Validate the new field when present without rewriting old entries. Group by existing workload and environment/device keys plus actual CPU threads and Docker VM count, including unknown as a distinct value, and by Docker allocation provenance (launcher, unknown, or legacy-unverified); indicate explicit/default/mixed request provenance in a group. Display MPS as whole GPU with CPU threads separate and use the existing measured averages only.
 
-**Rationale**: Existing validators accept additional fields and old entries already contain actual threads and Docker allocation; grouping by the actual resources prevents misleading averages.
+**Rationale**: Existing validators accept additional fields and old entries already contain actual threads and a historical Docker allocation; separating unverified historical counts from launcher observations prevents implying equal provenance.
 
 **Alternatives considered**: Rewrite old entries or introduce a new format version (unnecessary); group by request alone (can mix different actual resources).

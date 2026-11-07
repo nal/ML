@@ -49,7 +49,7 @@ A user reconfigures the Docker VM to 8 CPUs by following a documented manual ste
 
 1. **Given** the documentation, **When** a user follows the Docker VM step, **Then** they learn how to set the VM's CPU count, that it restarts the VM and affects every container on the machine, and how to return to the previous setting.
 2. **Given** a Docker VM with 8 CPUs, **When** the user trains in Docker with 8 threads, **Then** the run reports 8 VM CPUs and 8 threads, with no warning.
-3. **Given** a Docker VM whose CPU count differs from the requested thread count, **When** training starts, **Then** a warning names both numbers and explains that the comparison is not core-matched, and training continues.
+3. **Given** a Docker VM whose CPU count differs from a requested thread count that does not exceed process-available CPUs, **When** training starts, **Then** a warning names both numbers and explains that the comparison is not core-matched, and training continues.
 4. **Given** a Docker VM whose CPU count cannot be determined, **When** training starts with a thread count, **Then** a warning says the VM's CPU count could not be verified, and the entry records it as unknown.
 5. **Given** any training run, **When** the application runs, **Then** it never changes the Docker VM's configuration itself.
 
@@ -90,7 +90,7 @@ A user reads the documentation and understands why only CPU cores can be matched
 ### Edge Cases
 
 - A thread count equal to the available cores behaves like the default, but the entry records it as explicitly requested.
-- The Docker VM's CPU count is changed between runs. Each entry records the VM CPU count it ran with, and the summary keeps runs with different VM CPU counts apart.
+- The Docker VM's CPU count is changed between runs. Each entry records the VM CPU count it ran with, and the summary keeps runs with different VM CPU counts apart; historical unverified counts are labeled and kept separate from launcher observations.
 - The Docker VM has more CPUs than requested (for example 10 CPUs and 8 threads). The run warns about the mismatch but completes; the extra VM CPUs may still affect timing through other processes.
 - The requested count exceeds the native core count (for example 12 on a 10-core Mac). The command fails clearly, as in Docker.
 - A results file contains entries from feature 004 and from this feature. All remain valid and readable, and nothing is rewritten.
@@ -113,14 +113,14 @@ A user reads the documentation and understands why only CPU cores can be matched
 
 - **FR-006**: Documentation MUST give the manual steps to set the Docker VM's CPU count (for example to 8), state that this restarts the VM and affects every container on the machine, and show how to restore the previous setting.
 - **FR-007**: The application MUST NOT change the Docker VM's configuration.
-- **FR-008**: In Docker, when a thread count is given and the VM's CPU count differs from it, start-up MUST print a warning naming both numbers and stating that the run is not core-matched. Training MUST still proceed.
+- **FR-008**: In Docker, when a valid thread count is given and the VM's CPU count differs from it, start-up MUST print a warning naming both numbers and stating that the run is not core-matched, and training MUST proceed. A request exceeding the CPUs available to the process fails under FR-002 and does not also require a mismatch warning.
 - **FR-009**: When the Docker VM's CPU count cannot be determined, start-up MUST warn that it could not be verified, and the entry MUST record it as unknown. A container CPU limit alone MUST NOT be treated as the VM CPU count.
 
 **Recording and summary**
 
 - **FR-010**: Each new benchmark entry MUST record the requested thread count (or that the default was used), the thread count actually used, and, for Docker runs, the VM CPU count (or unknown).
 - **FR-011**: Entries written by feature 004 MUST remain valid and readable without being rewritten. They MUST be treated as having used the default, with their recorded thread count as the actual count.
-- **FR-012**: The summary MUST show the thread count on every row, and MUST NOT average runs that differ in thread count or, for Docker, in VM CPU count. Each distinct combination MUST be its own row, with its own run count.
+- **FR-012**: The summary MUST show the thread count on every row, and MUST NOT average runs that differ in thread count or, for Docker, in VM CPU count. Each distinct combination MUST be its own row, with its own run count. Docker entries with historical unverified allocation MUST be kept separate from launcher-observed allocation even when the recorded counts match.
 - **FR-013**: The summary MUST keep feature 004's grouping by dataset, seed, epochs and batch size, its paired training and held-out accuracy, and its "not yet measured" marking for configurations with no entries.
 - **FR-014**: GPU rows MUST be labeled as using the whole GPU, with the CPU-side thread count shown separately. GPU times MUST be shown exactly as measured; the summary and documentation MUST NOT scale, extrapolate or otherwise convert them to emulate a different number of GPU cores.
 
@@ -144,7 +144,7 @@ A user reads the documentation and understands why only CPU cores can be matched
 
 - **SC-001**: A training run with an explicit thread count reports and records exactly that count in 100% of runs, and a run without one behaves as in feature 004.
 - **SC-002**: Every request for more threads than available fails before writing anything, leaving the checkpoint and results file unchanged.
-- **SC-003**: After the documented Docker VM step, a Docker run with a matching thread count completes with no warning, and every mismatched run shows a warning.
+- **SC-003**: After the documented Docker VM step, a Docker run with a matching thread count completes with no warning, and every valid mismatched run shows a warning; an excessive request fails under FR-002.
 - **SC-004**: With Docker CPU, native CPU and native GPU each run at 8 threads on the same data and settings, the summary shows all three at 8 threads, with no row combining different thread counts.
 - **SC-005**: A results file containing feature 004 entries is read and summarized without errors and without being modified.
 - **SC-006**: The documentation contains every explanation in User Story 4 and a measured matched-core comparison, with no scaled or extrapolated GPU values anywhere in the documentation or summary.

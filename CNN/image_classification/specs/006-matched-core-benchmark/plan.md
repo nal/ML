@@ -1,10 +1,10 @@
 # Implementation Plan: Matched-Core Benchmark
 
-**Branch**: `006-matched-core-benchmark` | **Date**: 2026-11-07 | **Spec**: [spec.md](spec.md)
+**Branch**: `feat/006-matched-core-benchmark` | **Date**: 2026-11-07 | **Spec**: [spec.md](spec.md)
 
 ## Summary
 
-Extend training with a validated CPU computation thread count, preserve all-core defaults, record the request alongside existing actual count, and split benchmark rows by thread and Docker VM allocation. A host-side Colima launcher obtains the running VM allocation and checks the Docker endpoint before passing the observation into the container; ordinary containers without verifiable host evidence report unknown. Measure and document the three configurations sequentially without GPU scaling.
+Extend training with a validated CPU computation thread count, preserve all-core defaults, record the request alongside existing actual count, and split benchmark rows by thread, Docker VM allocation and allocation provenance. A host-side Colima launcher obtains the running VM allocation and checks the Docker endpoint before passing the observation into the container; ordinary containers without verifiable host evidence report unknown. Measure and document the three configurations sequentially without GPU scaling.
 
 ## Technical Context
 
@@ -23,12 +23,12 @@ Extend training with a validated CPU computation thread count, preserve all-core
 | Principle | Before research | After design |
 |---|---|---|
 | Simplicity | Pass: extend existing paths. | Pass: one small host launcher is needed to obtain evidence unavailable inside the container; no new dependency. |
-| Reproducibility | Pass: retain seeds and pinned dependencies. | Pass: report thread counts and resource provenance; document scheduling and MPS limits. |
+| Reproducibility | Conditional on constitution amendment: host commands require an exception. | Pass against the proposed constitution 2.0.0: Docker remains the default; host and optional native commands are identified, and thread/resource provenance and scheduling limits are documented. |
 | Honest Evaluation | Pass: retain held-out reporting and measured timings. | Pass: separate resource configurations and report whole-GPU measurements unchanged. |
 | Shared Preprocessing | Pass: retain existing pipeline. | Pass: no preprocessing or checkpoint schema change. |
 | Conventional Commits | Pass: hooks apply. | Pass: no bypass planned. |
 
-Gate: PASS before research and after design. No exceptions required.
+Gate: PASS against the proposed constitution 2.0.0 before research and after design; the amendment remains subject to the constitution’s review process.
 
 ## Project Structure
 
@@ -44,7 +44,7 @@ README.md                          # manual VM configuration, runs and results
 specs/006-matched-core-benchmark/  # plan, research, data model, contract, quickstart
 ```
 
-**Structure Decision**: Extend existing modules and publication protocol. The launcher queries Colima on the host, verifies the active Docker endpoint corresponds to the selected running Colima profile, and transports the observed count and provenance to its container invocation. If identity or observation is uncertain it supplies no count; the application warns and stores unknown. Never infer a VM count from container CPU visibility alone. Treat transported evidence as an observation from the launcher, not a security boundary; document that VM configuration and Docker context must not change during a run.
+**Structure Decision**: Extend existing modules and publication protocol. The launcher queries Colima on the host, verifies the active Docker endpoint corresponds to the selected running Colima profile, and transports the observed count and provenance to its container invocation. If identity or observation is uncertain it supplies no count; the application warns and stores unknown. Never infer a VM count from container CPU visibility alone. Use the versioned launcher handoff defined in [the CLI contract](contracts/cli.md); it is a launcher assertion, not an authentication or security boundary. Treat transported evidence as an observation from the launcher; document that VM configuration and Docker context must not change during a run.
 
 ## Complexity Tracking
 
