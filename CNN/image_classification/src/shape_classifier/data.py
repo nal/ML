@@ -43,3 +43,18 @@ class ShapeDataset(Dataset):
 
     def __getitem__(self, index):
         return self.samples[index]
+
+
+def dataset_fingerprint(root):
+    """Fingerprint sorted relative names and bytes across both dataset splits."""
+    import hashlib
+    root = Path(root)
+    digest = hashlib.sha256()
+    for split in ('train', 'held-out'):
+        for path in sorted((root / split).rglob('*.png')):
+            name = path.relative_to(root).as_posix().encode()
+            contents = path.read_bytes()
+            for part in (name, contents):
+                digest.update(len(part).to_bytes(8, 'big'))
+                digest.update(part)
+    return digest.hexdigest()

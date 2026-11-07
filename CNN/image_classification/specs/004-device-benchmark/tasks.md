@@ -6,13 +6,13 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 Verify Python and Docker ignore patterns in `.gitignore` and `.dockerignore`, adding only missing critical patterns.
-- [ ] T002 Inspect existing CLI, dataset, checkpoint and regression tests in `src/shape_classifier/` and `tests/test_classifier.py` to preserve current commands and compatibility.
+- [X] T001 Verify Python and Docker ignore patterns in `.gitignore` and `.dockerignore`, adding only missing critical patterns.
+- [X] T002 Inspect existing CLI, dataset, checkpoint and regression tests in `src/shape_classifier/` and `tests/test_classifier.py` to preserve current commands and compatibility.
 
 ## Phase 2: Foundational
 
-- [ ] T003 Establish reusable test fixtures for validated train/held-out datasets and legacy checkpoints in `tests/test_classifier.py`.
-- [ ] T004 Add device resolution and startup/error tests in `tests/test_device.py`, including Docker, usable/unusable native MPS, explicit CPU and omitted device.
+- [X] T003 Establish reusable test fixtures for validated train/held-out datasets and legacy checkpoints in `tests/test_classifier.py`.
+- [X] T004 Add device resolution and startup/error tests in `tests/test_device.py`, including Docker, usable/unusable native MPS, explicit CPU and omitted device.
 
 ## Phase 3: User Story 1 — Choose the compute device (P1, MVP)
 
@@ -20,12 +20,12 @@
 
 **Independent test**: In Docker, auto and CPU work; explicit MPS fails before writes for all commands. On a usable native Mac, auto selects MPS. Startup reports actual environment, device and versions.
 
-- [ ] T005 [US1] Implement shared run context and device resolution in `src/shape_classifier/device.py`: requested device `auto`, `cpu`, or `mps`; resolved device `cpu` or `mps`; environment `docker` or `native`; actual MPS usability probe and Docker CPU-only selection.
-- [ ] T006 [P] [US1] Add checkpoint provenance, malformed metadata and legacy/cross-device compatibility tests in `tests/test_checkpoint.py`.
-- [ ] T007 [US1] Update `src/shape_classifier/checkpoint.py` to save CPU-resident weights with actual environment/device, accept valid legacy Docker/CPU metadata, reject malformed provenance or incompatible class order/input size/scaling, and load via CPU.
-- [ ] T008 [US1] Update `src/shape_classifier/train.py` and `src/shape_classifier/predict.py` to move models, inputs and labels to the resolved device while retaining shared preprocessing, fixed seeds and deterministic algorithms where supported.
-- [ ] T009 [US1] Add `--device {auto,cpu,mps}` defaulting to `auto`, startup context reporting and early failure before writes to train/evaluate/predict in `src/shape_classifier/__main__.py`.
-- [ ] T010 [US1] Run device and checkpoint scenarios including existing CLI regressions in `tests/test_device.py`, `tests/test_checkpoint.py` and `tests/test_classifier.py`.
+- [X] T005 [US1] Implement shared run context and device resolution in `src/shape_classifier/device.py`: requested device `auto`, `cpu`, or `mps`; resolved device `cpu` or `mps`; environment `docker` or `native`; actual MPS usability probe and Docker CPU-only selection.
+- [X] T006 [P] [US1] Add checkpoint provenance, malformed metadata and legacy/cross-device compatibility tests in `tests/test_checkpoint.py`.
+- [X] T007 [US1] Update `src/shape_classifier/checkpoint.py` to save CPU-resident weights with actual environment/device, accept valid legacy Docker/CPU metadata, reject malformed provenance or incompatible class order/input size/scaling, and load via CPU.
+- [X] T008 [US1] Update `src/shape_classifier/train.py` and `src/shape_classifier/predict.py` to move models, inputs and labels to the resolved device while retaining shared preprocessing, fixed seeds and deterministic algorithms where supported.
+- [X] T009 [US1] Add `--device {auto,cpu,mps}` defaulting to `auto`, startup context reporting and early failure before writes to train/evaluate/predict in `src/shape_classifier/__main__.py`.
+- [X] T010 [US1] Run device and checkpoint scenarios including existing CLI regressions in `tests/test_device.py`, `tests/test_checkpoint.py` and `tests/test_classifier.py`.
 
 ## Phase 4: User Story 2 — Native Mac with shared versions (P1)
 
@@ -33,10 +33,10 @@
 
 **Independent test**: Follow native setup, compare installed Python and package versions to Docker, train against Docker-generated data, and evaluate the checkpoint on Docker CPU.
 
-- [ ] T011 [US2] Update `requirements.txt` with a single shared set of exact package pins and platform markers selecting Linux CPU and native macOS standard PyTorch/torchvision builds; retain the same package versions.
-- [ ] T012 [P] [US2] Update `Dockerfile` only as needed to install the shared pins and retain the default CPU image and existing entrypoint.
-- [ ] T013 [US2] Document pinned Python 3.14.10, native virtual environment installation, shared data/checkpoint paths, generation and all classifier commands in `README.md`.
-- [ ] T014 [US2] Validate Docker and native package versions, dependency health, shared images and cross-environment checkpoint loading using `specs/004-device-benchmark/quickstart.md`; record actual platform limitations if native hardware is unavailable.
+- [X] T011 [US2] Update `requirements.txt` with a single shared set of exact package pins and platform markers selecting Linux CPU and native macOS standard PyTorch/torchvision builds; retain the same package versions.
+- [X] T012 [P] [US2] Update `Dockerfile` only as needed to install the shared pins and retain the default CPU image and existing entrypoint.
+- [X] T013 [US2] Document pinned Python 3.14.10, native virtual environment installation, shared data/checkpoint paths, generation and all classifier commands in `README.md`.
+- [X] T014 [US2] Validate Docker and native package versions, dependency health, shared images and cross-environment checkpoint loading using `specs/004-device-benchmark/quickstart.md`; record actual platform limitations if native hardware is unavailable.
 
 ## Phase 5: User Story 3 — Record and compare performance (P2)
 
@@ -46,15 +46,15 @@
 
 - [ ] T015 [P] [US3] Add measurement tests in `tests/test_benchmark.py` for warm-up exclusion, one epoch unavailable times, MPS synchronization, held-out inference and paired counts, CPU thread reporting and dataset identity.
 - [ ] T016 [P] [US3] Add results and summary tests in `tests/test_results.py` for empty/malformed/incompatible files, grouping, missing configurations, nullable timing and arithmetic means.
-- [ ] T017 [P] [US3] Add publication failure, interruption/recovery and concurrent process tests in `tests/test_publication.py`, including shared and distinct checkpoint paths, interruption immediately before and after the results commit point, and a results-save failure preserving prior checkpoint bytes or prior absence. Test interruption in Docker followed by native recovery and the reverse for shared paths, prediction recovery from a nested checkpoint without a data-directory argument across mounts, and inaccessible external recovery locations.
-- [ ] T018 [US3] Implement dataset SHA-256 fingerprint over sorted relative paths and bytes of both validated splits with length-delimited records in `src/shape_classifier/data.py`.
-- [ ] T019 [US3] Implement CPU thread and reliable Docker resource detection in `src/shape_classifier/device.py`: all available CPU cores for CPU training; report actual thread count; record VM CPU/memory as positive values when known or `unknown`, native values null.
+- [ ] T017 [P] [US3] Add publication failure and interruption/recovery tests in `tests/test_publication.py` for sequential commands, including shared and distinct checkpoint paths, interruption immediately before and after the results commit point, and a results-save failure preserving prior checkpoint bytes or prior absence. Test interruption in Docker followed by native recovery and the reverse for shared paths, prediction recovery from a nested checkpoint without a data-directory argument across mounts, and inaccessible external recovery locations.
+- [X] T018 [US3] Implement dataset SHA-256 fingerprint over sorted relative paths and bytes of both validated splits with length-delimited records in `src/shape_classifier/data.py`.
+- [X] T019 [US3] Implement CPU thread and reliable Docker resource detection in `src/shape_classifier/device.py`: all available CPU cores for CPU training; report actual thread count; record VM CPU/memory as positive values when known or `unknown`, native values null.
 - [ ] T020 [US3] Add synchronized epoch timing excluding first epoch, final epoch loss and held-out per-image inference timing in `src/shape_classifier/train.py`; retain held-out isolation and paired accuracy assessment.
-- [ ] T021 [US3] Implement versioned results validation and grouping in `src/shape_classifier/benchmark.py`: UTC timestamp, context, fingerprint, seed, epochs, batch size, times, loss and paired correct/total counts; positive epochs/batch size, positive totals, valid counts, finite nonnegative metrics and null warm-up times for one epoch.
-- [ ] T022 [US3] Implement stable locks, durable journal and checkpoint-side recovery discovery in `src/shape_classifier/publication.py`; lock both destinations consistently, stage outputs, preserve previous checkpoint, publish checkpoint then results as commit point, resolve the journal relative to the checkpoint sidecar directory for shared-data paths across Docker/native mounts without requiring a data-directory argument, and report inaccessible external recovery locations without discarding the journal.
-- [ ] T023 [US3] Integrate publication and recovery with checkpoint reads and writes in `src/shape_classifier/checkpoint.py` and `src/shape_classifier/train.py`, including deferred ordinary termination signals around publication, rollback on results-save failure and exactly one entry per committed run.
+- [X] T021 [US3] Implement versioned results validation and grouping in `src/shape_classifier/benchmark.py`: UTC timestamp, context, fingerprint, seed, epochs, batch size, times, loss and paired correct/total counts; positive epochs/batch size, positive totals, valid counts, finite nonnegative metrics and null warm-up times for one epoch.
+- [ ] T022 [US3] Implement sequential publication, durable journal and checkpoint-side recovery discovery in `src/shape_classifier/publication.py`; remove the existing advisory-lock mechanism and do not promise concurrent access or automatic detection. Stage outputs, preserve the previous checkpoint, publish checkpoint then results as commit point, resolve the journal relative to the checkpoint sidecar directory for shared-data paths across Docker/native mounts without requiring a data-directory argument, and report inaccessible external recovery locations without discarding the journal.
+- [ ] T023 [US3] Integrate sequential publication and recovery with checkpoint reads and writes in `src/shape_classifier/checkpoint.py`, `src/shape_classifier/train.py` and `src/shape_classifier/__main__.py`; remove their existing advisory-lock dependencies, defer ordinary termination signals around publication, roll back on results-save failure and record exactly one entry per committed run.
 - [ ] T024 [US3] Add `summary --data-dir` and grouped three-configuration table in `src/shape_classifier/__main__.py` and `src/shape_classifier/benchmark.py`, with run counts, mean available timings/loss and paired accuracy, clear empty/error states and no mixing of different dataset fingerprints, seeds, epochs or batch sizes.
-- [ ] T025 [US3] Run targeted measurement, summary, failure-injection and concurrency tests in `tests/test_benchmark.py`, `tests/test_results.py` and `tests/test_publication.py`.
+- [ ] T025 [US3] Run targeted measurement, summary, failure-injection and sequential recovery tests in `tests/test_benchmark.py`, `tests/test_results.py` and `tests/test_publication.py`.
 
 ## Phase 6: User Story 4 — Read results honestly (P3)
 
@@ -63,7 +63,7 @@
 **Independent test**: Read README and summary with a slower GPU result; verify it is shown and all required caveats are present.
 
 - [ ] T026 [US4] Add measured-result caveats to summary output in `src/shape_classifier/benchmark.py`: small synthetic demo, device arithmetic differences, resource differences and potentially slower GPU.
-- [ ] T027 [US4] Document three comparable runs, summary interpretation, observed CPU repeat-run variation, MPS/multithread nondeterminism, Docker resource limits and small synthetic dataset in `README.md`; retain results even when MPS is slower.
+- [ ] T027 [US4] Document three comparable runs performed sequentially, the unsupported overlapping access and lack of guaranteed detection, summary interpretation, observed CPU repeat-run variation, MPS/multithread nondeterminism, Docker resource limits and small synthetic dataset in `README.md`; retain results even when MPS is slower.
 - [ ] T028 [US4] Validate summary caveats and README claims against actual measurements using `specs/004-device-benchmark/quickstart.md`.
 
 ## Phase 7: Polish and Cross-Cutting Validation

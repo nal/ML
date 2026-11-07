@@ -22,9 +22,10 @@ docker run --rm -v "$PWD/data:/data" --entrypoint python shape-classifier -m sha
 ## Native setup and comparison
 
 ```sh
-uv python install 3.14.10
-uv venv --python 3.14.10
-uv pip install -r requirements.txt
+brew install python@3.14  # or brew upgrade python@3.14
+/opt/homebrew/bin/python3.14 --version  # must be 3.14.10
+uv venv --python /opt/homebrew/bin/python3.14
+uv pip install --index-strategy unsafe-best-match -r requirements.txt
 uv pip install --no-build-isolation --no-deps .
 uv pip check
 .venv/bin/python -m shape_classifier train --data-dir "$PWD/data" --checkpoint "$PWD/data/shapes.pth" --device cpu
@@ -34,4 +35,4 @@ uv pip check
 
 Verify Python and installed package versions against Docker, allowing only the documented PyTorch platform build difference. The summary should show three rows in the same group with counts, warm-up-excluded timing, inference, loss and paired accuracies. Repeat with `--epochs 1`: excluded timings must be unavailable, not zero. Run `auto` natively and in Docker to verify actual device reporting. Evaluate a native-trained checkpoint in Docker and a previously saved feature 002/003 checkpoint natively; predict with both. Use explicit `--checkpoint` for native evaluation and prediction.
 
-Run concurrent training processes against the same data directory with separate checkpoint paths, then verify both entries survive in valid JSON. Test summary with a missing file, and test summary and training with a malformed or unsupported file: it must remain unchanged. Verify results-publication failures using the automated failure-injection tests: existing checkpoint bytes and prior results must remain unchanged, including when no checkpoint existed initially. Exercise interrupted publication before and after the results commit point and verify recovery on the next access; test concurrent runs sharing a checkpoint as well as separate paths. An inaccessible recovery destination must produce a clear error and retain recovery information. A GPU slowdown is a valid measurement. Compare repeat CPU results and document observed variation; arithmetic and thread scheduling can differ, VM resources may be smaller, and this small synthetic dataset does not establish real-world performance.
+Run Docker CPU, native CPU and native MPS training one at a time, waiting for each command to finish; then verify all entries survive in valid JSON. Do not overlap training, summary, evaluation or prediction commands that access the same results or checkpoint: concurrent access is unsupported and may not be detected. Test summary with a missing file, and test summary and training with a malformed or unsupported file: it must remain unchanged. Verify results-publication failures using the automated failure-injection tests: existing checkpoint bytes and prior results must remain unchanged, including when no checkpoint existed initially. Exercise interrupted publication before and after the results commit point and verify recovery on the next sequential command; test shared and separate checkpoint paths, including recovery across Docker and native mounts. An inaccessible recovery destination must produce a clear error and retain recovery information. A GPU slowdown is a valid measurement. Compare repeat CPU results and document observed variation; arithmetic and thread scheduling can differ, VM resources may be smaller, and this small synthetic dataset does not establish real-world performance.

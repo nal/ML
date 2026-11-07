@@ -270,6 +270,26 @@ Questions `clarify` may raise: the **number of epochs** and **batch size** (reco
 
 Repeat until **Converged**.
 
+### Native macOS setup (optional)
+
+Docker remains the default. On Apple silicon macOS 15 or newer, install the same Python and dependency versions with `uv`:
+
+```sh
+brew install python@3.14  # or brew upgrade python@3.14 if already installed
+/opt/homebrew/bin/python3.14 --version  # must report Python 3.14.10
+uv venv --python /opt/homebrew/bin/python3.14
+uv pip install --index-strategy unsafe-best-match -r requirements.txt
+uv pip install --no-build-isolation --no-deps .
+uv pip check
+.venv/bin/python -m shape_dataset --output-dir "$PWD/data"
+.venv/bin/python -m shape_classifier train --data-dir "$PWD/data" --checkpoint "$PWD/data/shapes.pth" --device auto
+.venv/bin/python -m shape_classifier evaluate --data-dir "$PWD/data" --checkpoint "$PWD/data/shapes.pth" --device cpu
+.venv/bin/python -m shape_classifier predict "$PWD/data/held-out/circle/01.png" --checkpoint "$PWD/data/shapes.pth" --device auto
+.venv/bin/python -m shape_classifier summary --data-dir "$PWD/data"
+```
+
+The same `data` directory is mounted at `/data` in Docker. Use `--device auto`, `cpu`, or `mps`; explicit MPS fails if unavailable. Checkpoints are portable between environments. The Python package versions are shared; Docker uses CPU PyTorch builds, while native macOS uses standard builds. Homebrew may upgrade Python automatically: verify the patch version and recreate the virtual environment if it changes.
+
 ### 3.4 Train, evaluate, and predict
 
 Build the image and generate a dataset using the unchanged generator entrypoint:

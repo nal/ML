@@ -12,6 +12,8 @@
 
 ### Session 2026-11-07
 
+- Q: Should commands sharing benchmark outputs run concurrently? → A: No. Run them sequentially; overlapping access is unsupported and need not be detected.
+
 - Q: If training finishes but the benchmark entry cannot be saved, what should happen to the newly trained checkpoint? → A: Keep the existing checkpoint unchanged and report failure.
 - Q: Which CPU thread policy should benchmark runs use: keep 1 thread (deterministic), use all available cores, or add a thread-count option defaulting to 1? → A: Use all available cores for every training run.
 
@@ -92,7 +94,7 @@ A user reads the documentation and the summary and understands what the numbers 
 - The native environment reports a GPU as present but unusable, for example on an old OS version. Device `mps` fails clearly; `auto` uses the CPU and says so.
 - The results file is missing. The first successful run creates it. If the summary is requested with no file or no entries, it prints a clear "no results yet" message and exits successfully.
 - The results file is malformed or was written by an incompatible version. The summary reports the problem clearly and does not crash; training does not overwrite or discard existing entries.
-- Docker and native runs write to the same results file. Entries from both are kept, and concurrent runs do not corrupt the file.
+- Docker and native runs write to the same results file. Runs and other commands accessing the same results or checkpoint MUST be performed sequentially; overlapping access is unsupported and may not be detected. Entries from completed sequential runs are kept.
 - The Docker VM's CPU and memory allocation cannot be determined. The entry records it as unknown rather than guessing.
 - A checkpoint's metadata records an environment or device other than the current one. It still loads, since the checkpoint is saved device-neutral, but incompatible preprocessing or class order is still rejected.
 - Results from runs with different data, seeds, epochs or batch sizes exist in the same file. The summary does not mix them into one comparison without making that visible.
@@ -127,7 +129,7 @@ A user reads the documentation and the summary and understands what the numbers 
 - **FR-013**: Timings on the GPU MUST be taken only after all queued GPU work for the timed interval has completed.
 - **FR-014**: Held-out data MUST be used only for measuring accuracy and inference time after training. It MUST NOT influence training, model selection or any configuration choice.
 - **FR-015**: Every training run on the CPU MUST use all CPU cores available to its environment, replacing the current single-thread setting. Inside Docker that means the cores allocated to the Docker VM. No thread-count option is added. The thread count used MUST be reported at the start of the run and recorded in each entry. Other reproducibility measures (fixed seeds, deterministic algorithms where supported) MUST remain in place.
-- **FR-016**: A run that fails or is interrupted before the results entry is atomically committed MUST NOT add an entry. Once the entry is committed, the run is complete and the entry remains even if termination follows immediately. Concurrent writers MUST NOT corrupt the results file. If the benchmark entry cannot be saved, training MUST report failure and leave any existing checkpoint unchanged.
+- **FR-016**: A run that fails or is interrupted before the results entry is atomically committed MUST NOT add an entry. Once the entry is committed, the run is complete and the entry remains even if termination follows immediately. Training runs and other commands accessing the same results or checkpoint MUST NOT overlap; concurrent access is unsupported and detection is not guaranteed. Documentation MUST instruct users to wait for each command to finish before starting another. If the benchmark entry cannot be saved, training MUST report failure and leave any existing checkpoint unchanged.
 
 **Summary**
 
@@ -167,6 +169,7 @@ A user reads the documentation and the summary and understands what the numbers 
 - The Mac is Apple silicon (M1 Pro) running macOS 15 or newer, with GPU support in the standard PyTorch build. The research document records macOS 27.0.1 and confirms that PyTorch 2.15.0 with MPS is available for Python 3.14.
 - The existing data folder, generated datasets (30 training, 15 held-out images) and default training settings (seed 42, 60 epochs, batch size 8) are reused. This feature does not change the model, preprocessing, augmentation or dataset.
 - Results are recorded automatically on every successful training run, not behind an opt-in flag, as the research document states ("each training run records").
+- Benchmark runs and commands accessing their shared results or checkpoint are executed sequentially; concurrency detection and safety are out of scope.
 - The results file lives in the data folder so both environments write to the same file and it persists outside the container.
 - Users may repeat runs per configuration. The summary averages them and shows the count rather than picking one run.
 - Inference time is measured on the held-out images after training, in the same run, so it adds no extra command.
