@@ -43,6 +43,14 @@ def validate_entry(e):
     for key in ('epochs', 'batch_size', 'cpu_threads'):
         if type(e.get(key)) is not int or e[key] <= 0:
             raise ValueError(f'invalid {key}')
+    request = e.get('requested_cpu_threads')
+    if request is not None and (type(request) is not int or request <= 0 or request != e['cpu_threads']):
+        raise ValueError('invalid requested_cpu_threads')
+    if 'docker_cpu_provenance' in e:
+        provenance = e['docker_cpu_provenance']
+        cpus = e.get('docker_cpus')
+        if e['environment'] != 'docker' or not ((provenance == 'launcher' and type(cpus) is int and cpus > 0) or (provenance == 'unknown' and cpus == 'unknown')):
+            raise ValueError('invalid docker_cpu_provenance')
     if type(e.get('seed')) is not int:
         raise ValueError('invalid seed')
     for split in ('train', 'held_out'):
@@ -76,21 +84,32 @@ def format_summary(entries):
     for key, group in sorted(groups.items()):
         lines.append(f'Data: {key[0]}; seed: {key[1]}; epochs: {key[2]}; batch size: {key[3]}')
         headers = ('Environment', 'Device', 'Runs', 'Training (s)', 'Epoch (s)',
-                   'Inference (s/image)', 'Loss', 'Train accuracy', 'Held-out accuracy')
+                   'Inference (s/image)', 'Loss', 'Train accuracy', 'Held-out accuracy',
+                   'CPU threads', 'Request', 'VM CPUs', 'VM provenance')
         table = []
         for environment, device in (('docker', 'cpu'), ('native', 'cpu'), ('native', 'mps')):
             rows = [e for e in group if (e['environment'], e['device']) == (environment, device)]
             if not rows:
-                table.append((environment, device, '0', 'not yet measured', '-', '-', '-', '-', '-'))
+                table.append((environment, device, '0', 'not yet measured', '-', '-', '-', '-', '-', '-', '-', '-', '-'))
                 continue
-            def avg(key):
-                values = [e[key] for e in rows if e[key] is not None]
-                return f'{mean(values):.6f}' if values else 'unavailable'
-            train = mean(e['train_correct']/e['train_total'] for e in rows)
-            held = mean(e['held_out_correct']/e['held_out_total'] for e in rows)
-            table.append((environment, device, str(len(rows)), avg('training_seconds'),
-                          avg('epoch_seconds'), avg('inference_seconds'), avg('loss'),
-                          f'{train:.4f}', f'{held:.4f}'))
+            partitions = defaultdict(list)
+            for entry in rows:
+                allocation = entry['docker_cpus'] if environment == 'docker' else None
+                provenance = entry.get('docker_cpu_provenance', 'legacy-unverified') if environment == 'docker' else None
+                partitions[(entry['cpu_threads'], allocation, provenance)].append(entry)
+            for (threads, allocation, provenance), same in sorted(partitions.items(), key=lambda item: tuple(str(x) for x in item[0])):
+                def avg(key):
+                    values = [e[key] for e in same if e[key] is not None]
+                    return f'{mean(values):.6f}' if values else 'unavailable'
+                train = mean(e['train_correct']/e['train_total'] for e in same)
+                held = mean(e['held_out_correct']/e['held_out_total'] for e in same)
+                requests = {'default' if e.get('requested_cpu_threads') is None else 'explicit' for e in same}
+                request = next(iter(requests)) if len(requests) == 1 else 'mixed'
+                label = 'mps (whole GPU)' if device == 'mps' else device
+                table.append((environment, label, str(len(same)), avg('training_seconds'),
+                              avg('epoch_seconds'), avg('inference_seconds'), avg('loss'),
+                              f'{train:.4f}', f'{held:.4f}', str(threads), request,
+                              str(allocation) if allocation is not None else '-', provenance or '-'))
         widths = [max(len(row[i]) for row in [headers, *table]) for i in range(len(headers))]
         def render(row):
             return ' | '.join(value.ljust(widths[i]) for i, value in enumerate(row)).rstrip()

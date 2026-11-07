@@ -6,3 +6,6 @@ data/
 .env*
 *.log*
 coverage/
+Dockerfile*
+.dockerignore
+node_modules/

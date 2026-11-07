@@ -48,11 +48,12 @@ class MeasurementTests(unittest.TestCase):
              patch('shape_classifier.train.torch.mps.synchronize') as sync, \
              patch.object(torch.nn.Module, 'to', lambda self, *a, **k: self), \
              patch.object(torch.Tensor, 'to', lambda self, *a, **k: self):
-            results = train(root, Path(root) / 'model.pth', epochs=2, batch_size=2, device='mps', environment='native')
+            results = train(root, Path(root) / 'model.pth', epochs=2, batch_size=2, device='mps', environment='native', cpu_threads=1)
         self.assertEqual(sync.call_count, 6)
         self.assertEqual([total for _, total in results], [2, 2])
         self.assertIsNotNone(captured[0]['epoch_seconds'])
         self.assertEqual(captured[0]['cpu_threads'], 1)
+        self.assertEqual(captured[0]['requested_cpu_threads'], 1)
         self.assertGreaterEqual(captured[0]['inference_seconds'], 0)
 
     def test_docker_resources_reports_known_vm_values_and_respects_limits(self):
@@ -62,11 +63,13 @@ class MeasurementTests(unittest.TestCase):
             values = {'/proc/meminfo': 'MemTotal:       2097152 kB\n', '/sys/fs/cgroup/memory.max': 'max\n'}
             if str(path) not in values: raise FileNotFoundError(str(path))
             return values[str(path)]
-        with patch('pathlib.Path.read_text', files), patch('shape_classifier.device.available_cpus', return_value=4), patch('shape_classifier.device.os.cpu_count', return_value=4):
+        import json
+        observation = json.dumps(dict(version=1, cpus=4, profile='default', docker_endpoint='unix:///tmp/docker.sock'))
+        with patch.dict('os.environ', {'SHAPE_COLIMA_OBSERVATION': observation}), patch('pathlib.Path.read_text', files), patch('shape_classifier.device.available_cpus', return_value=4), patch('shape_classifier.device.os.cpu_count', return_value=4):
             self.assertEqual(docker_resources('docker'), (4, 2097152 * 1024))
             self.assertEqual(docker_resources('native'), (None, None))
         def limited(path, *args, **kwargs):
             if str(path) == '/sys/fs/cgroup/memory.max': return '1048576\n'
             return files(path, *args, **kwargs)
-        with patch('pathlib.Path.read_text', limited), patch('shape_classifier.device.available_cpus', return_value=2), patch('shape_classifier.device.os.cpu_count', return_value=4):
+        with patch.dict('os.environ', {}, clear=True), patch('pathlib.Path.read_text', limited), patch('shape_classifier.device.available_cpus', return_value=2), patch('shape_classifier.device.os.cpu_count', return_value=4):
             self.assertEqual(docker_resources('docker'), ('unknown', 'unknown'))

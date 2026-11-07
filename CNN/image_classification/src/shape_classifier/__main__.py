@@ -34,11 +34,17 @@ def main(argv=None):
     training.add_argument('--seed', type=int, default=42)
     training.add_argument('--epochs', type=positive_int, default=60)
     training.add_argument('--batch-size', type=positive_int, default=8)
+    training.add_argument('--cpu-threads', type=positive_int)
     training.add_argument('--dataset-train-seed', type=int)
     training.add_argument('--dataset-held-out-seed', type=int)
     prediction.add_argument('image')
     args = parser.parse_args(argv)
     try:
+        if args.command == 'train':
+            available = available_cpus()
+            if args.cpu_threads is not None and args.cpu_threads > available:
+                raise ValueError(f'Requested {args.cpu_threads} CPU threads; {available} available')
+            torch.set_num_threads(args.cpu_threads or available)
         if args.command == 'summary':
             root = Path(args.data_dir)
             if not root.exists():
@@ -50,13 +56,14 @@ def main(argv=None):
         environment, device = resolve_device(args.device)
         print(f'Environment: {environment}; device: {device}; Python: {platform.python_version()}; PyTorch: {torch.__version__}', file=sys.stderr)
         if args.command == 'train':
-            print(f'CPU threads: {available_cpus()}', file=sys.stderr)
+            print(f'CPU threads: {torch.get_num_threads()} ({"default" if args.cpu_threads is None else "requested"})', file=sys.stderr)
         if args.command == 'predict':
             print(predict(args.image, args.checkpoint, device))
         else:
             if args.command == 'train':
                 results = train(args.data_dir, args.checkpoint, args.seed, args.epochs, args.batch_size,
-                                args.dataset_train_seed, args.dataset_held_out_seed, device, environment)
+                                args.dataset_train_seed, args.dataset_held_out_seed, device, environment,
+                                cpu_threads=args.cpu_threads)
             else:
                 results = evaluate(args.data_dir, args.checkpoint, device)
             for name, (correct, total) in zip(('Training', 'Held-out'), results):

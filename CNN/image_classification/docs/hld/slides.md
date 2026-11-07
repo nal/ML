@@ -12,7 +12,7 @@ drawings:
 
 High-Level Design
 
-<div class="opacity-60 pt-4">2026-11-07 · features 001–005 · commit 83b41d9</div>
+<div class="opacity-60 pt-4">2026-11-07 · features 001–006 · commit dcc6aad</div>
 
 <!--
 A tiny, fully reproducible machine-learning pipeline: generate pictures of shapes, train a small CNN, classify new pictures.
@@ -48,7 +48,7 @@ It's a learning project. The value is in the process (reproducibility, honest ev
 | Principle | In the design |
 |---|---|
 | <span v-mark.underline.orange="1">Simplicity</span> | 2 small packages, ~5k-parameter CNN, `unittest` |
-| <span v-mark.underline.orange="2">Reproducibility</span> | Seeds 42 / 43 / 42, one shared set of pins, deterministic where supported |
+| <span v-mark.underline.orange="2">Reproducibility</span> | Seeds 42 / 43 / 42, one shared set of pins, deterministic where supported; Docker by default, native and host commands labelled |
 | <span v-mark.underline.orange="3">Honest evaluation</span> | Held-out accuracy always shown; slower GPU results still published |
 | <span v-mark.underline.orange="4">Shared preprocessing</span> | One pipeline for train, evaluate and predict |
 | <span v-mark.underline.orange="5">Conventional Commits</span> | `commit-msg` hook, plus a feature-number check |
@@ -72,7 +72,10 @@ flowchart LR
     nclf["shape_classifier<br/>CPU or MPS"]
   end
   data[("data/ folder")]
+  launch["host launcher"]
   user e1@==> gen
+  user --> launch
+  launch -. "VM CPU count" .-> clf
   gen e2@==> data
   data e3@==> clf
   data e4@==> nclf
@@ -87,6 +90,7 @@ flowchart LR
 - Same code and package versions in both environments
 - The `data/` folder is the **only** shared state: PNGs, `shapes.pth`, `benchmark-results.json`
 - Commands touching the same outputs run **one at a time**
+- A host launcher reads the Colima VM's CPU count for matched-core runs, and never changes it
 
 </v-clicks>
 
@@ -215,7 +219,7 @@ flowchart LR
     dgen --> dcol[colors]
     dmain --> dout["output"]
   end
-  subgraph sc["shape_classifier · 002–004"]
+  subgraph sc["shape_classifier · 002–006"]
     cmain["CLI"] --> cdev[device]
     cmain --> ctrain[train]
     cmain --> cpred[predict]
@@ -237,7 +241,7 @@ flowchart LR
 
 - `shape_dataset` knows nothing about ML
 - `transforms` is the single shared preprocessing definition
-- `device` decides where work runs; `publication` writes checkpoint and results safely
+- `device` decides where work runs and reads the VM CPU count only from the launcher; `publication` writes checkpoint and results safely
 - `benchmark` validates entries and prints the comparison
 
 </v-clicks>
@@ -309,8 +313,8 @@ sequenceDiagram
   participant DS as ShapeDataset
   participant M as CNN
   participant O as Adam
-  U->>CLI: train --device auto
-  CLI->>CLI: seed everything · all CPU cores · deterministic where supported
+  U->>CLI: train --device auto [--cpu-threads N]
+  CLI->>CLI: check threads · seed · set CPU threads · deterministic
   CLI->>DS: load 30 train + 15 held-out
   loop 60 epochs × 4 batches
     CLI->>M: augmented batch on the device
@@ -457,13 +461,78 @@ Default settings (seed 42, 60 epochs, batch 8), same data, M1 Pro (feature 004).
 <v-clicks at="2">
 
 - MPS was fastest here, but for a model this small that isn't guaranteed
-- Docker had only 2 of 10 cores, so its row mixes environment and core count
+- Docker had only 2 of 10 cores, so its row mixes environment and core count (next: feature 006)
 - Accuracy is the same on held-out: devices change speed, not what the model learns
 
 </v-clicks>
 
 <!--
 Native CPU was run twice: identical accuracy and loss, times 2.3 percent apart.
+-->
+
+---
+layout: two-cols
+---
+
+# Matching CPU threads
+
+```mermaid {scale: 0.55}
+flowchart TD
+  S(["train --cpu-threads N"]) --> V{"N ≤ available CPUs?"}
+  V -- no --> F["fail · nothing written"]
+  V -- yes --> T["set N CPU threads"]
+  T --> D{"in Docker?"}
+  D -- no --> RUN["train · assess · publish"]
+  D -- yes --> O{"launcher observation?"}
+  O -- no --> U["warn: VM CPUs unknown"]:::new
+  O -- yes --> M{"VM CPUs = N?"}
+  M -- no --> W["warn: not core-matched"]:::new
+  M -- yes --> RUN
+  U --> RUN
+  W --> RUN
+  classDef new fill:#fde68a,stroke:#d97706
+```
+
+::right::
+
+<v-clicks>
+
+- Feature 006: every configuration can use the **same number of CPU threads**
+- Default is unchanged: all available cores
+- The VM's CPU count comes only from the **host launcher**; a container can't see it
+- The app never reconfigures Colima: that's a manual step affecting every container
+- Only CPU threads are matched: the GPU is always used in full
+
+</v-clicks>
+
+<!--
+The launcher checks Docker's endpoint in Docker's own order, DOCKER_HOST first, and passes nothing if it can't match Colima's socket.
+-->
+
+---
+
+# Results: matched CPU threads
+
+8 CPU threads everywhere, Colima VM at 8 CPUs (verified by the launcher), same data and settings (feature 006).
+
+| Configuration | Training time* | Inference / image | Training | Held-out |
+|---|---:|---:|---:|---:|
+| Docker CPU (8 threads) | <span v-mark.underline.orange="1">12.8 s</span> | 2.48 ms | 19/30 | 6/15 |
+| Native CPU (8 threads) | <span v-mark.underline.orange="1">8.9 s</span> | 1.09 ms | 20/30 | 6/15 |
+| Native MPS (whole GPU, 8 CPU threads) | 6.5 s | 0.59 ms | 18/30 | 6/15 |
+
+<div class="text-sm opacity-60">* excluding the first (warm-up) epoch · one run each</div>
+
+<v-clicks at="2">
+
+- With matched threads Docker was still ~1.4× slower: part of the gap is the environment itself
+- GPU times are **never scaled** to "emulate" fewer GPU cores: they can't be limited and aren't CPU-equivalent
+- Held-out stays 6/15 on every configuration
+
+</v-clicks>
+
+<!--
+One run per row, so this shows the direction, not a general speed claim.
 -->
 
 ---
@@ -482,6 +551,8 @@ Native CPU was run twice: identical accuracy and loss, times 2.3 percent apart.
 - **Explicit device, no silent fallback** → benchmarks measure what they claim
 - **Dataset fingerprint as the grouping key** → only like is compared with like
 - **Checkpoint first, results last, with a journal** → a failed save never changes the old model
+- **VM CPUs only from a verified launcher, else unknown** → no guessed resources
+- **Match CPU threads, never scale the GPU** → only measured numbers
 
 </v-clicks>
 
@@ -499,6 +570,7 @@ timeline
   003 training default : epoch comparison : 30 → 60
   004 device benchmark : native macOS : --device flag : benchmark summary
   005 high-level design : this deck : HLD document
+  006 matched cores : --cpu-threads : host launcher
 ```
 
 <div v-click>
