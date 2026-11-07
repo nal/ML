@@ -40,6 +40,14 @@ class LauncherTests(unittest.TestCase):
             colima.write_text('#!/bin/sh\nprintf "%s\\n" \'{"cpu":8,"docker_socket":"unix:///tmp/colima.sock"}\'\n')
             docker.write_text('#!/bin/sh\nif [ "$1" = context ]; then printf "%s\\n" "unix:///tmp/other.sock"; else env | grep "^SHAPE_COLIMA_OBSERVATION=" || true; fi\n')
             env['DOCKER_CONTEXT'] = 'other'
+            env.pop('DOCKER_HOST', None)
+            result = subprocess.run([str(script)], env=env, text=True, capture_output=True, check=True)
+            self.assertNotIn('SHAPE_COLIMA_OBSERVATION=', result.stdout)
+            self.assertIn('could not be verified', result.stderr)
+
+            docker.write_text('#!/bin/sh\nif [ "$1" = context ]; then printf "%s\\n" "unix:///tmp/colima.sock"; else env | grep "^SHAPE_COLIMA_OBSERVATION=" || true; fi\n')
+            env['DOCKER_CONTEXT'] = 'colima'
+            env['DOCKER_HOST'] = 'unix:///tmp/other.sock'
             result = subprocess.run([str(script)], env=env, text=True, capture_output=True, check=True)
             self.assertNotIn('SHAPE_COLIMA_OBSERVATION=', result.stdout)
             self.assertIn('could not be verified', result.stderr)

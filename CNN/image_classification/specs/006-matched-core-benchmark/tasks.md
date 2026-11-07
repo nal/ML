@@ -107,3 +107,8 @@ description: "Implementation tasks for the matched-core benchmark"
 ## Implementation Strategy
 
 Deliver US1 first as the MVP and validate its explicit/default and invalid-input paths. Add verified VM reporting, then resource-aware summary grouping, then the measured comparison and explanatory documentation. Complete the final validation and `$speckit-converge` before marking the feature implemented. The reference-machine benchmark is required for feature completion; missing hardware or authorization is a blocker to record, not a reason to fabricate data.
+
+## Phase 8: Convergence
+
+- [X] T023 Resolve the effective Docker endpoint in `scripts/matched-core-docker.sh` in Docker CLI precedence order (`DOCKER_HOST`, then `DOCKER_CONTEXT`, then the current context) so a set `DOCKER_HOST` is never bypassed by a matching `DOCKER_CONTEXT`, and add a case to `tests/test_colima_launcher.py` with `DOCKER_CONTEXT` matching Colima and `DOCKER_HOST` pointing elsewhere that expects no observation and the unverified warning per FR-009 (contradicts)
+- [X] T024 After the user authorizes it, restore the Colima default profile to its pre-comparison allocation of 2 CPUs with the README procedure (`colima stop`, `colima start --cpu 2`) and confirm with `colima list` per T020 (partial)

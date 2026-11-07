@@ -18,10 +18,10 @@ try:
     if not isinstance(socket, str) or not socket:
         raise ValueError('no Colima Docker socket')
     colima_endpoint = 'unix://' + str(Path(socket.removeprefix('unix://')).resolve())
-    if env.get('DOCKER_CONTEXT'):
-        context = env['DOCKER_CONTEXT']
-    elif env.get('DOCKER_HOST'):
+    if env.get('DOCKER_HOST'):
         context = None
+    elif env.get('DOCKER_CONTEXT'):
+        context = env['DOCKER_CONTEXT']
     else:
         context = subprocess.check_output(['docker', 'context', 'show'], text=True, timeout=10).strip()
     endpoint = (subprocess.check_output(['docker', 'context', 'inspect', context, '--format',
